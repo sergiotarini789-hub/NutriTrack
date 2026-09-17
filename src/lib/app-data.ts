@@ -5,7 +5,7 @@ import {
   Dumbbell,
   Flame,
   Footprints,
-  MoonStar,
+  Salad,
   PersonStanding,
   Scale,
   TrendingDown,
@@ -32,8 +32,8 @@ export interface MealMeta {
 /** Meal types in display order. */
 export const MEALS: MealMeta[] = [
   { id: "breakfast", name: "Завтрак", icon: Coffee },
-  { id: "lunch", name: "Обед", icon: Utensils },
-  { id: "dinner", name: "Ужин", icon: MoonStar },
+  { id: "lunch", name: "Обед", icon: Salad },
+  { id: "dinner", name: "Ужин", icon: Utensils },
   { id: "snacks", name: "Перекусы", icon: Cookie },
 ];
 

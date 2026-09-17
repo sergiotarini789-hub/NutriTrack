@@ -9,8 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MEALS } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
-import { formatFullDate, todayKey } from "@/lib/dates";
-import { formatNumber } from "@/lib/format";
+import { formatDayMonth, todayKey } from "@/lib/dates";
+import { formatNumber, pluralize } from "@/lib/format";
 import {
   entriesForDate,
   entriesForMeal,
@@ -34,15 +34,17 @@ export function Dashboard() {
   if (!ready) return <LoadingState />;
 
   const today = todayKey();
-  const totals = nutritionOfEntries(
-    resolveEntries(entriesForDate(entries, today), findFood),
-  );
+  const todayEntries = entriesForDate(entries, today);
+  const totals = nutritionOfEntries(resolveEntries(todayEntries, findFood));
+  const mealsWithFood = MEALS.filter(
+    (meal) => entriesForMeal(entries, today, meal.id).length > 0,
+  ).length;
 
   return (
     <div className="space-y-5 sm:space-y-6">
       <div className="mb-1">
-        <p className="text-sm font-medium text-primary">
-          {formatFullDate(date)}
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-primary">
+          {formatDayMonth(date)}
         </p>
         <h1 className="mt-0.5 text-[26px] font-bold tracking-tight text-foreground lg:text-3xl">
           Сегодня
@@ -52,11 +54,26 @@ export function Dashboard() {
       <DailyNutrition totals={totals} targets={targets} />
 
       <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-base font-semibold text-foreground">
-            Приёмы пищи
-          </h2>
-          <span className="text-sm tabular-nums text-muted-foreground">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">
+              Приёмы пищи
+            </h2>
+            {todayEntries.length > 0 && (
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {mealsWithFood}{" "}
+                {pluralize(
+                  mealsWithFood,
+                  "приём пищи",
+                  "приёма пищи",
+                  "приёмов пищи",
+                )}{" "}
+                · {todayEntries.length}{" "}
+                {pluralize(todayEntries.length, "продукт", "продукта", "продуктов")}
+              </p>
+            )}
+          </div>
+          <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
             Итого: {formatNumber(totals.calories)} ккал
           </span>
         </div>

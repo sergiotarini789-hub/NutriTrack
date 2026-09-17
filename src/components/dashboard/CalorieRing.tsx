@@ -8,8 +8,9 @@ interface CalorieRingProps {
 
 /**
  * The dashboard's primary visual: circular calorie progress with the
- * consumed amount in large type. The arc animates when the value
- * changes; visually capped at 100% while the center stays accurate.
+ * consumed amount in large type, its unit and the target beneath it.
+ * The arc animates when the value changes; visually capped at 100%
+ * while the center stays accurate.
  */
 export function CalorieRing({ current, target }: CalorieRingProps) {
   const radius = 78;
@@ -45,10 +46,13 @@ export function CalorieRing({ current, target }: CalorieRingProps) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[40px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
+        <span className="text-[42px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-5xl">
           {formatNumber(current)}
         </span>
-        <span className="mt-2 text-xs font-medium text-muted-foreground">
+        <span className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          ккал
+        </span>
+        <span className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
           из {formatNumber(target)} ккал
         </span>
       </div>

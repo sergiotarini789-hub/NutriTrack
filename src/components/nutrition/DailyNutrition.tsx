@@ -10,24 +10,31 @@ interface DailyNutritionProps {
 }
 
 /**
- * Dashboard hero: the calorie ring as the primary element with the
- * remaining amount right beneath it, and one cohesive macro overview
- * (three compact indicators) beside it.
+ * Dashboard hero: the calorie ring as the centerpiece of the app —
+ * large number, "ккал" unit, target beneath and the remaining amount
+ * in a prominent pill — followed by one cohesive macro visualization
+ * (three softly tinted indicators).
  */
 export function DailyNutrition({ totals, targets }: DailyNutritionProps) {
   const remaining = targets.calories - totals.calories;
   const over = remaining < 0;
 
   return (
-    <Card className="p-5 sm:p-7">
-      <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-center lg:gap-12">
-        <div className="flex shrink-0 flex-col items-center gap-4">
+    <Card className="relative overflow-hidden p-5 sm:p-7">
+      <div className="relative flex flex-col items-center gap-6 lg:flex-row lg:gap-12">
+        {/* Calorie status — the visual centerpiece */}
+        <div className="relative flex shrink-0 flex-col items-center gap-4">
+          {/* Soft accent glow hugging the ring */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -m-7 rounded-full bg-primary/[0.07] blur-2xl"
+          />
           <CalorieRing current={totals.calories} target={targets.calories} />
           <p
             className={
               over
-                ? "rounded-full bg-red-500/10 px-4 py-1.5 text-sm font-semibold tabular-nums text-red-600 dark:text-red-400"
-                : "rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold tabular-nums text-primary"
+                ? "relative rounded-full bg-red-500/10 px-5 py-2 text-[15px] font-semibold tabular-nums text-red-600 dark:text-red-400"
+                : "relative rounded-full bg-primary/10 px-5 py-2 text-[15px] font-semibold tabular-nums text-primary"
             }
           >
             {over
@@ -36,11 +43,13 @@ export function DailyNutrition({ totals, targets }: DailyNutritionProps) {
           </p>
         </div>
 
-        <div className="grid w-full max-w-md grid-cols-3 gap-x-4 gap-y-5 sm:gap-x-6 lg:max-w-none lg:flex-1">
+        {/* Macros — one cohesive nutrition visualization */}
+        <div className="grid w-full max-w-md grid-cols-3 gap-2.5 sm:gap-3 lg:max-w-none lg:flex-1">
           <MacroStat
             label="Белки"
             current={totals.protein}
             target={targets.protein}
+            unit="г"
             color={totals.protein > targets.protein ? "danger" : "protein"}
             over={totals.protein > targets.protein}
           />
@@ -48,6 +57,7 @@ export function DailyNutrition({ totals, targets }: DailyNutritionProps) {
             label="Жиры"
             current={totals.fat}
             target={targets.fat}
+            unit="г"
             color={totals.fat > targets.fat ? "danger" : "fat"}
             over={totals.fat > targets.fat}
           />
@@ -55,6 +65,7 @@ export function DailyNutrition({ totals, targets }: DailyNutritionProps) {
             label="Углеводы"
             current={totals.carbs}
             target={targets.carbs}
+            unit="г"
             color={totals.carbs > targets.carbs ? "danger" : "carbs"}
             over={totals.carbs > targets.carbs}
           />

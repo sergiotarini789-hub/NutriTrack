@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef } from "react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export interface CategoryChip {
   id: string;
   name: string;
+  icon?: LucideIcon;
 }
 
 interface CategoryChipsProps {
@@ -15,8 +17,9 @@ interface CategoryChipsProps {
 }
 
 /**
- * Horizontally scrollable category selector; the active category is
- * a solid accent pill. Scrolls back to the start on selection.
+ * Horizontally scrollable category selector with small food icons;
+ * the active category is a solid accent pill. Scrolls back to the
+ * start on selection.
  */
 export function CategoryChips({
   categories,
@@ -34,6 +37,7 @@ export function CategoryChips({
     >
       {categories.map((category) => {
         const active = category.id === selected;
+        const Icon = category.icon;
         return (
           <button
             key={category.id}
@@ -45,12 +49,20 @@ export function CategoryChips({
               containerRef.current?.scrollTo({ left: 0, behavior: "smooth" });
             }}
             className={cn(
-              "h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 text-sm transition-[background-color,color,transform] duration-150 active:scale-95",
+              "flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm transition-[background-color,color,transform] duration-150 active:scale-95",
               active
                 ? "bg-primary font-semibold text-primary-foreground"
                 : "bg-foreground/[0.06] font-medium text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
             )}
           >
+            {Icon && (
+              <Icon
+                className={cn(
+                  "h-4 w-4 shrink-0",
+                  active ? "opacity-90" : "opacity-70",
+                )}
+              />
+            )}
             {category.name}
           </button>
         );

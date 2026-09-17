@@ -7,15 +7,16 @@
  * NutriTrack design system
  * ------------------------
  * One accent color (emerald family) + three muted macro hues.
- * Surfaces are borderless and filled; hairlines only where lists need
- * separation. Large tabular numerals carry the visual hierarchy.
+ * Clear surface ladder: background -> card (primary surface) ->
+ * tinted fills (secondary) -> hover fills (interactive).
+ * Large tabular numerals carry the visual hierarchy.
  */
 :root {
-  --background: #f2f5f1;
+  --background: #eef2ec;
   --foreground: #131a15;
   --card: #ffffff;
-  --border: #e3e8e1;
-  --muted-foreground: #5f6d64;
+  --border: #dfe6dc;
+  --muted-foreground: #5c6b61;
   --primary: #047857;
   --primary-hover: #036c4b;
   --primary-foreground: #ffffff;
@@ -26,11 +27,11 @@
 }
 
 .dark {
-  --background: #0b0f0d;
-  --foreground: #eef2ee;
-  --card: #151b17;
-  --border: #242c26;
-  --muted-foreground: #93a198;
+  --background: #090d0b;
+  --foreground: #eef3ef;
+  --card: #18211b;
+  --border: #253029;
+  --muted-foreground: #96a29a;
   --primary: #34d399;
   --primary-hover: #6ee7b7;
   --primary-foreground: #03291d;

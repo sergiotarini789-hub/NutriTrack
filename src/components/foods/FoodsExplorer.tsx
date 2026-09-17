@@ -38,10 +38,14 @@ export function FoodsExplorer() {
   const categories = useMemo<CategoryChip[]>(() => {
     const base: CategoryChip[] = CATEGORIES.filter(
       (item) => item.id !== "user",
-    ).map((item) => ({ id: item.id, name: item.name }));
+    ).map((item) => ({ id: item.id, name: item.name, icon: item.icon }));
     const list: CategoryChip[] = [{ id: ALL_CATEGORY, name: "Все" }, ...base];
     if (userFoods.length > 0) {
-      list.push({ id: "user", name: "Мои продукты" });
+      list.push({
+        id: "user",
+        name: "Мои продукты",
+        icon: CATEGORIES.find((item) => item.id === "user")?.icon,
+      });
     }
     return list;
   }, [userFoods]);

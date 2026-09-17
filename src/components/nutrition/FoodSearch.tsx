@@ -63,10 +63,15 @@ export function FoodSearch({
       ...CATEGORIES.filter((item) => item.id !== "user").map((item) => ({
         id: item.id,
         name: item.name,
+        icon: item.icon,
       })),
     ];
     if (userFoods.length > 0) {
-      list.push({ id: "user", name: "Мои продукты" });
+      list.push({
+        id: "user",
+        name: "Мои продукты",
+        icon: CATEGORIES.find((item) => item.id === "user")?.icon,
+      });
     }
     return list;
   }, [userFoods]);

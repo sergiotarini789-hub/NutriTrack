@@ -29,7 +29,7 @@ export function ProgressBar({ value, max, color = "primary" }: ProgressBarProps)
 
   return (
     <div
-      className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.08]"
+      className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.10]"
       role="progressbar"
       aria-valuenow={value}
       aria-valuemin={0}

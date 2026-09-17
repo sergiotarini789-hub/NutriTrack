@@ -23,9 +23,10 @@ interface MealCardProps {
 }
 
 /**
- * One meal inside the unified diary surface: header with icon, name,
- * calorie total and a quick-add button; compact food rows expand
- * underneath. Meals with entries start expanded.
+ * One meal inside the unified diary surface: food-focused header
+ * (meal icon, name, calorie total) with an inviting quick-add button —
+ * filled with the accent color when the meal is still empty. Compact
+ * food rows expand underneath. Meals with entries start expanded.
  */
 export function MealCard({
   mealId,
@@ -48,7 +49,7 @@ export function MealCard({
     )
     .join(", ");
   const preview = empty
-    ? "Ничего не добавлено"
+    ? "Пока ничего нет"
     : items.length > 2
       ? `${names} +${items.length - 2}`
       : names;
@@ -64,8 +65,8 @@ export function MealCard({
           aria-controls={empty ? undefined : `${mealId}-content`}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-1 text-left transition-colors hover:bg-foreground/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Icon className="h-5 w-5" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-[21px] w-[21px]" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2">
@@ -89,8 +90,8 @@ export function MealCard({
           <span className="shrink-0 text-right">
             <span
               className={cn(
-                "text-base font-bold tabular-nums",
-                empty ? "text-muted-foreground/50" : "text-foreground",
+                "text-lg font-bold tabular-nums tracking-tight",
+                empty ? "text-muted-foreground/40" : "text-foreground",
               )}
             >
               {empty ? "—" : formatNumber(totals.calories)}
@@ -103,13 +104,18 @@ export function MealCard({
           </span>
         </button>
 
-        {/* Quick add */}
+        {/* Quick add — filled and inviting when the meal is empty */}
         <button
           type="button"
           onClick={onAdd}
           aria-label={`Добавить еду: ${name}`}
           title={`Добавить еду: ${name}`}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-foreground transition-[background-color,color,transform] duration-150 hover:bg-primary/10 hover:text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            empty
+              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary-hover"
+              : "bg-foreground/[0.06] text-foreground hover:bg-primary/10 hover:text-primary",
+          )}
         >
           <Plus className="h-5 w-5" strokeWidth={2.25} />
         </button>

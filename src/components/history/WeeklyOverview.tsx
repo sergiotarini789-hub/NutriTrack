@@ -47,7 +47,9 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
         </div>
 
         <div className="flex h-full items-end gap-1.5 sm:gap-3">
-          {days.map((day) => (
+          {days.map((day) => {
+            const overNorm = day.calories !== null && day.calories > target;
+            return (
             <div
               key={day.dateKey}
               className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
@@ -73,13 +75,20 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
                 <div
                   className={cn(
                     "w-full rounded-t-lg transition-[height] duration-500 ease-out motion-reduce:transition-none",
-                    day.isToday ? "bg-primary" : "bg-primary/30",
+                    overNorm
+                      ? day.isToday
+                        ? "bg-red-500"
+                        : "bg-red-500/40"
+                      : day.isToday
+                        ? "bg-primary"
+                        : "bg-primary/30",
                   )}
                   style={{ height: `${(day.calories / chartMax) * 100}%` }}
                 />
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

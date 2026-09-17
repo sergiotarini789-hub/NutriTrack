@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useDiary } from "@/lib/diary";
+import { categoryIcon } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
 import {
   formatEntryAmount,
@@ -47,13 +48,30 @@ function MealFoodRow({ item, onEdit }: MealFoodRowProps) {
   const [inlineOpen, setInlineOpen] = useState(false);
   const { entry, food } = item;
   const nutrition = nutritionForServing(food, entry.amount, entry.unit);
+  const FoodIcon = categoryIcon(food.category);
 
   return (
-    <li className="group flex items-center gap-2 rounded-xl px-1 py-1.5 transition-colors hover:bg-foreground/[0.03]">
+    <li className="group flex items-center gap-2.5 rounded-2xl px-1 py-2 transition-colors hover:bg-foreground/[0.03]">
+      {/* Food category visual */}
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.05] text-muted-foreground">
+        <FoodIcon className="h-[17px] w-[17px]" />
+      </span>
+
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">
-          {food.name}
-        </p>
+        {/* Line 1: name + calories */}
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="min-w-0 truncate text-sm font-medium text-foreground">
+            {food.name}
+          </p>
+          <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+            {formatNumber(nutrition.calories)}
+            <span className="ml-1 text-[11px] font-medium text-muted-foreground">
+              ккал
+            </span>
+          </p>
+        </div>
+
+        {/* Line 2: quantity (click to quick-edit) */}
         {inlineOpen ? (
           <InlineAmountEditor
             item={item}
@@ -70,13 +88,6 @@ function MealFoodRow({ item, onEdit }: MealFoodRowProps) {
           </button>
         )}
       </div>
-
-      <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-        {formatNumber(nutrition.calories)}
-        <span className="ml-1 text-xs font-medium text-muted-foreground">
-          ккал
-        </span>
-      </p>
 
       <div className="flex shrink-0 items-center">
         <button

@@ -207,7 +207,7 @@ export function FoodQuantity({
             </span>
           )}
         </p>
-        <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+        <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-primary">
           {formatNumber(nutrition?.calories ?? 0)}
           <span className="ml-1.5 text-sm font-medium text-muted-foreground">
             ккал
