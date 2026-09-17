@@ -1,17 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
-import { foods } from "@/lib/food-data";
+import { Plus, Search, X } from "lucide-react";
+import { useDiary } from "@/lib/diary";
+import { categoryIcon, searchFoods } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
+import { baseUnitLabel } from "@/lib/nutrition";
 import type { FoodItem } from "@/lib/types";
+
+const MAX_RESULTS = 30;
 
 interface FoodSearchProps {
   onSelect: (food: FoodItem) => void;
+  /** Opens the custom food form. */
+  onCreate?: () => void;
 }
 
-/** Real-time search over the local food database. */
-export function FoodSearch({ onSelect }: FoodSearchProps) {
+/** Real-time search over the local food database (with a results cap). */
+export function FoodSearch({ onSelect, onCreate }: FoodSearchProps) {
+  const { allFoods } = useDiary();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -19,14 +26,11 @@ export function FoodSearch({ onSelect }: FoodSearchProps) {
     inputRef.current?.focus();
   }, []);
 
-  const normalized = query.trim().toLowerCase();
   const results = useMemo(
-    () =>
-      normalized
-        ? foods.filter((food) => food.name.toLowerCase().includes(normalized))
-        : foods,
-    [normalized],
+    () => searchFoods(allFoods, query),
+    [allFoods, query],
   );
+  const capped = results.slice(0, MAX_RESULTS);
 
   return (
     <div>
@@ -38,8 +42,8 @@ export function FoodSearch({ onSelect }: FoodSearchProps) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && results.length > 0) {
-              onSelect(results[0]);
+            if (event.key === "Enter" && capped.length > 0) {
+              onSelect(capped[0]);
             }
           }}
           placeholder="Поиск продукта..."
@@ -69,43 +73,61 @@ export function FoodSearch({ onSelect }: FoodSearchProps) {
           <p className="mt-1 text-[13px] text-muted-foreground">
             Попробуйте изменить запрос
           </p>
+          {onCreate && (
+            <button
+              type="button"
+              onClick={onCreate}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-primary/40 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+            >
+              <Plus className="h-4 w-4" />
+              Создать продукт
+            </button>
+          )}
         </div>
       ) : (
-        <ul className="mt-3 space-y-2">
-          {results.map((food) => {
-            const Icon = food.icon;
-            return (
-              <li key={food.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(food)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium text-foreground">
-                      {food.name}
+        <>
+          <ul className="mt-3 space-y-2">
+            {capped.map((food) => {
+              const Icon = categoryIcon(food.category);
+              return (
+                <li key={food.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(food)}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="h-5 w-5" />
                     </span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      Б {formatNumber(food.protein)} г · Ж {formatNumber(food.fat)} г · У{" "}
-                      {formatNumber(food.carbs)} г
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-medium text-foreground">
+                        {food.name}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Б {formatNumber(food.protein)} г · Ж {formatNumber(food.fat)} г · У{" "}
+                        {formatNumber(food.carbs)} г
+                      </span>
                     </span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="block text-sm font-semibold tabular-nums text-foreground">
-                      {formatNumber(food.calories)}
+                    <span className="shrink-0 text-right">
+                      <span className="block text-sm font-semibold tabular-nums text-foreground">
+                        {formatNumber(food.calories)}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        ккал / 100 {baseUnitLabel(food)}
+                      </span>
                     </span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      ккал / 100 г
-                    </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {results.length > capped.length && (
+            <p className="mt-3 text-center text-[13px] text-muted-foreground">
+              Показаны первые {formatNumber(capped.length)} из{" "}
+              {formatNumber(results.length)} — уточните запрос
+            </p>
+          )}
+        </>
       )}
     </div>
   );

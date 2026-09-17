@@ -7,7 +7,11 @@ import { MealFoodList } from "@/components/nutrition/MealFoodList";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
-import { nutritionOfEntries, type ResolvedEntry } from "@/lib/nutrition";
+import {
+  formatEntryAmount,
+  nutritionOfEntries,
+  type ResolvedEntry,
+} from "@/lib/nutrition";
 import type { MealType } from "@/lib/types";
 
 interface MealCardProps {
@@ -16,20 +20,18 @@ interface MealCardProps {
   icon: LucideIcon;
   /** Food entries of this meal for the current day. */
   items: ResolvedEntry[];
-  onDelete: (entryId: string) => void;
   onAdd: () => void;
 }
 
 /**
  * Expandable meal card: header with total calories, expandable list of
- * foods with delete controls and a quick add button.
+ * foods with edit/delete controls and a quick add button.
  */
 export function MealCard({
   mealId,
   name,
   icon: Icon,
   items,
-  onDelete,
   onAdd,
 }: MealCardProps) {
   const [open, setOpen] = useState(false);
@@ -38,7 +40,12 @@ export function MealCard({
 
   const names = items
     .slice(0, 2)
-    .map(({ entry, food }) => `${food.name} · ${formatNumber(entry.amount)} г`)
+    .map(
+      ({ entry, food }) =>
+        `${food.name} · ${formatEntryAmount(food, entry.amount, entry.unit, {
+          withBase: false,
+        })}`,
+    )
     .join(", ");
   const preview = empty
     ? "Ничего не добавлено"
@@ -97,7 +104,7 @@ export function MealCard({
               Ничего не добавлено
             </p>
           ) : (
-            <MealFoodList items={items} onDelete={onDelete} />
+            <MealFoodList items={items} />
           )}
           <button
             type="button"

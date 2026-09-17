@@ -3,8 +3,8 @@
 Трекер питания: калории, белки, жиры и углеводы каждый день.
 
 Приложение работает полностью локально: все данные (дневник питания,
-профиль, цели) хранятся в localStorage браузера. Бэкенд и синхронизация
-будут подключены на следующих этапах.
+профиль, цели, пользовательские продукты) хранятся в localStorage
+браузера. Бэкенд и синхронизация будут подключены на следующих этапах.
 
 ## Возможности
 
@@ -12,11 +12,17 @@
   уровень активности и цель (профиль сохраняется локально).
 - **Сегодня** (`/today`) — дашборд дня: кольцевой индикатор калорий,
   белки / жиры / углеводы, приёмы пищи с реальными записями.
-- **Добавление еды** — кнопка «Добавить еду» (или «Добавить» в карточке
-  приёма пищи): выбор приёма → поиск продукта → количество в граммах →
+- **Добавление еды** — «Добавить еду»: выбор приёма → поиск продукта →
+  количество и единица (г / мл / шт / ломтик / порция / ложки) →
   живой расчёт КБЖУ → добавление в дневник.
-- **Продукты** (`/foods`) — база продуктов с поиском, деталями
-  (на 100 г) и кнопкой «Добавить в дневник».
+- **Редактирование записей** — кнопка «Изменить» (полный редактор) и
+  быстрый степпер прямо в карточке приёма пищи.
+- **Продукты** (`/foods`) — база из ~270 продуктов по 17 категориям с
+  поиском (название, категория, синонимы), фильтром по категориям,
+  деталями и кнопкой «Добавить в дневник».
+- **Свои продукты** — «Создать продукт»: название, КБЖУ на 100 г/мл,
+  базовая единица и размер порции. Хранятся в localStorage и работают
+  в дневнике как встроенные.
 - **История** (`/history`) — обзор недели и статистика по дням
   на основе реальных записей.
 - **Настройки** (`/settings`) — профиль, нормы питания и параметры
@@ -39,34 +45,71 @@ npm run dev
 
 Приложение будет доступно по адресу <http://localhost:3000>.
 
-Продакшен-сборка:
+Продакшен-сборка и проверки:
 
 ```bash
-npm run build
-npm run start
-```
-
-Проверки:
-
-```bash
+npm run build && npm run start
 npx tsc --noEmit   # типы
 npm run lint       # ESLint
 ```
+
+## Модель данных
+
+### Продукт (FoodItem)
+
+```ts
+{
+  id, name, category, aliases,
+  calories, protein, fat, carbs,   // на 100 базовых единиц
+  baseUnit: "g" | "ml",
+  units: FoodUnit[],               // доступные единицы с граммовками
+  servingOptions: FoodServing[],   // быстрые порции
+  defaultServing: FoodServing,
+  sourceType: "generic" | "manufacturer" | "database" | "user",
+  sourceName?, isBranded
+}
+```
+
+`FoodUnit` описывает единицу измерения продукта: ключ (`g`, `ml`,
+`piece`, `slice`, `tsp`, `serving`, `package`...), русскую подпись с
+формами склонения и граммовый эквивалент (`base`: сколько базовых
+единиц в одной порции, например `1 шт ≈ 50 г`).
+
+Питание считается как `значение на 100 × amount × unit.base / 100`,
+поэтому `2 шт` и `100 г` яица дают одинаковую ценность. При смене
+единицы в редакторе количество пересчитывается так, чтобы ценность
+сохранилась.
+
+### Запись дневника (FoodEntry)
+
+```ts
+{ id, foodId, mealType, amount, unit, date }
+```
+
+`amount` — количество в выбранной единице (`unit` — ключ из
+`FoodUnit`). Пищевая ценность не дублируется в записях: она всегда
+вычисляется из базы продуктов.
 
 ## Хранение данных (localStorage)
 
 | Ключ | Содержимое |
 | --- | --- |
-| `nutritrack:v1:entries` | `FoodEntry[]` — `{ id, foodId, mealType, amount, date }` |
+| `nutritrack:v1:entries` | `FoodEntry[]` — `{ id, foodId, mealType, amount, unit, date }` |
+| `nutritrack:v1:user-foods` | `FoodItem[]` — продукты, созданные пользователем |
 | `nutritrack:v1:profile` | `{ gender, age, height, weight, activity, goal }` |
 | `nutritrack:v1:targets` | `{ calories, protein, fat, carbs }` |
 | `nutritrack:v1:units` | `"metric" \| "imperial"` |
 | `nutritrack:v1:onboarded` | `"true"` после завершения онбординга |
 | `nutritrack-theme` | `"light" \| "dark"` (тема) |
 
-Пищевая ценность не дублируется в записях — она вычисляется из
-локальной базы продуктов (`src/lib/food-data.ts`) по формуле
-`значение на 100 г × количество / 100`.
+**Миграция:** записи, сохранённые без поля `unit` (до появления
+единиц измерения), читаются как граммы (`unit: "g"`).
+
+**Качество данных:** все значения носят справочный характер. Встроенные
+продукты — обобщённые (`sourceType: "generic"`) без привязки к брендам;
+пользовательские отмечаются источником «Пользователь». Архитектура
+готова к подключению внешней базы продуктов или данных производителей
+на следующих этапах.
 
 ## Структура проекта
 
@@ -84,20 +127,22 @@ src/
 ├── components/
 │   ├── dashboard/           # Dashboard, CalorieRing, NutritionCard, MealCard
 │   ├── nutrition/           # AddFoodModal, FoodSearch, FoodQuantity,
-│   │                        # MealFoodList, DailyNutrition
-│   ├── foods/               # FoodCard, FoodDetailsModal, FoodsExplorer
+│   │                        # MealFoodList, EditEntryModal, CustomFoodForm,
+│   │                        # DailyNutrition
+│   ├── foods/               # FoodsExplorer, FoodCard, FoodDetailsModal,
+│   │                        # CategoryChips
 │   ├── history/             # HistoryView, WeeklyOverview, HistoryDayCard
 │   ├── navigation/          # Navigation, Sidebar, MobileNavigation
 │   ├── onboarding/          # OnboardingForm (визард первого запуска)
 │   ├── settings/            # SettingsForm, SettingsSection, SettingRow, ThemeToggle
 │   └── ui/                  # Card, Button, Input, Modal, Toast, ProgressBar...
 └── lib/
-    ├── types.ts             # TypeScript-типы (FoodEntry, UserProfile и др.)
-    ├── food-data.ts         # Локальная база продуктов (на 100 г)
+    ├── types.ts             # TypeScript-типы (FoodItem, FoodEntry и др.)
+    ├── food-data.ts         # Локальная база продуктов, категории, поиск
     ├── app-data.ts          # Приёмы пищи, варианты онбординга, дефолты
-    ├── nutrition.ts         # Расчёт КБЖУ и выборки записей
+    ├── nutrition.ts         # Единицы, расчёт КБЖУ, форматирование количеств
     ├── dates.ts             # Работа с датами и русское форматирование
-    ├── storage.ts           # Слой persistence над localStorage
+    ├── storage.ts           # Слой persistence над localStorage + валидация
     ├── diary.tsx            # DiaryProvider + useDiary (общее состояние)
     ├── format.ts            # Русское форматирование чисел и склонения
     └── cn.ts                # Утилита для классов

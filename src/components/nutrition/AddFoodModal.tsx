@@ -7,16 +7,14 @@ import { Toast } from "@/components/ui/Toast";
 import { MEALS, mealName } from "@/lib/app-data";
 import { cn } from "@/lib/cn";
 import { useDiary } from "@/lib/diary";
-import { getFoodById } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
 import { parseAmountInput } from "@/lib/nutrition";
 import type { FoodItem, MealType } from "@/lib/types";
+import { CustomFoodForm } from "./CustomFoodForm";
 import { FoodQuantity } from "./FoodQuantity";
 import { FoodSearch } from "./FoodSearch";
 
-type Step = "meal" | "search" | "quantity";
-
-const DEFAULT_AMOUNT = "100";
+type Step = "meal" | "search" | "quantity" | "create";
 
 interface AddFoodModalProps {
   open: boolean;
@@ -28,8 +26,8 @@ interface AddFoodModalProps {
 }
 
 /**
- * Add-food flow: choose a meal, find a food, enter the amount,
- * then add it to the diary.
+ * Add-food flow: choose a meal, find a food (or create a custom one),
+ * enter the amount, then add it to the diary.
  */
 export function AddFoodModal({
   open,
@@ -37,30 +35,33 @@ export function AddFoodModal({
   preselectedMeal = null,
   preselectedFoodId = null,
 }: AddFoodModalProps) {
-  const { addEntry } = useDiary();
+  const { addEntry, findFood } = useDiary();
   const [step, setStep] = useState<Step>("meal");
   const [meal, setMeal] = useState<MealType | null>(preselectedMeal);
   const [foodId, setFoodId] = useState<string | null>(preselectedFoodId);
-  const [amount, setAmount] = useState(DEFAULT_AMOUNT);
+  const [amount, setAmount] = useState("100");
+  const [unitKey, setUnitKey] = useState("g");
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const food: FoodItem | null = useMemo(
-    () => (foodId ? (getFoodById(foodId) ?? null) : null),
-    [foodId],
+    () => (foodId ? (findFood(foodId) ?? null) : null),
+    [foodId, findFood],
   );
 
   const parsedAmount = parseAmountInput(amount);
   const amountValid = parsedAmount !== null && parsedAmount > 0;
-  const canAdd = step === "quantity" && meal !== null && food !== null && amountValid;
+  const canAdd =
+    step === "quantity" && meal !== null && food !== null && amountValid;
 
   // Reset the flow each time the modal opens. When a meal is preset
-  // (quick add from a meal card), skip straight to food search.
+  // (quick add from a meal card), skip straight to food search; when a
+  // food is preset (from the products page), start with meal selection.
   useEffect(() => {
     if (open) {
       setMeal(preselectedMeal);
       setFoodId(preselectedFoodId);
-      setAmount(DEFAULT_AMOUNT);
+      applyDefaults(findFood(preselectedFoodId ?? "") ?? null);
       if (preselectedMeal && preselectedFoodId) {
         setStep("quantity");
       } else if (preselectedMeal) {
@@ -69,7 +70,7 @@ export function AddFoodModal({
         setStep("meal");
       }
     }
-  }, [open, preselectedMeal, preselectedFoodId]);
+  }, [open, preselectedMeal, preselectedFoodId, findFood]);
 
   useEffect(
     () => () => {
@@ -78,6 +79,16 @@ export function AddFoodModal({
     [],
   );
 
+  function applyDefaults(nextFood: FoodItem | null) {
+    if (nextFood) {
+      setAmount(formatNumber(nextFood.defaultServing.amount));
+      setUnitKey(nextFood.defaultServing.unitKey);
+    } else {
+      setAmount("100");
+      setUnitKey("g");
+    }
+  }
+
   function selectMeal(next: MealType) {
     setMeal(next);
     setStep(foodId ? "quantity" : "search");
@@ -85,26 +96,42 @@ export function AddFoodModal({
 
   function selectFood(next: FoodItem) {
     setFoodId(next.id);
-    setAmount(DEFAULT_AMOUNT);
+    applyDefaults(next);
     setStep("quantity");
+  }
+
+  function handleCreated(next: FoodItem) {
+    setFoodId(next.id);
+    applyDefaults(next);
+    setStep("quantity");
+    showToast(`Продукт «${next.name}» создан`);
+  }
+
+  function showToast(message: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
   }
 
   function goBack() {
     if (step === "quantity") {
       setStep(preselectedFoodId ? "meal" : "search");
-    } else if (step === "search") {
+    } else if (step === "search" || step === "create") {
       setStep("meal");
     }
   }
 
   function handleAdd() {
     if (!canAdd || !meal || !food || parsedAmount === null) return;
-    addEntry({ foodId: food.id, mealType: meal, amount: parsedAmount });
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(
-      `Добавлено: ${food.name} · ${formatNumber(parsedAmount)} г (${mealName(meal)})`,
+    addEntry({
+      foodId: food.id,
+      mealType: meal,
+      amount: parsedAmount,
+      unit: unitKey,
+    });
+    showToast(
+      `Добавлено: ${food.name} · ${formatNumber(parsedAmount)} ${unitSuffix(food, parsedAmount, unitKey)} (${mealName(meal)})`,
     );
-    toastTimer.current = setTimeout(() => setToast(null), 2500);
     onClose();
   }
 
@@ -113,7 +140,7 @@ export function AddFoodModal({
       <Modal
         open={open}
         onClose={onClose}
-        title="Добавить еду"
+        title={step === "create" ? "Создать продукт" : "Добавить еду"}
         onBack={step !== "meal" ? goBack : undefined}
         footer={
           step === "quantity" ? (
@@ -168,21 +195,45 @@ export function AddFoodModal({
           </div>
         )}
 
-        {step === "search" && <FoodSearch onSelect={selectFood} />}
+        {step === "search" && (
+          <FoodSearch onSelect={selectFood} onCreate={() => setStep("create")} />
+        )}
+
+        {step === "create" && <CustomFoodForm onCreated={handleCreated} />}
 
         {step === "quantity" &&
           (food ? (
             <FoodQuantity
               food={food}
               amount={amount}
+              unitKey={unitKey}
               onAmountChange={setAmount}
+              onUnitChange={setUnitKey}
               onSubmit={handleAdd}
             />
           ) : (
-            <FoodSearch onSelect={selectFood} />
+            <FoodSearch onSelect={selectFood} onCreate={() => setStep("create")} />
           ))}
       </Modal>
       <Toast message={toast} />
     </>
   );
+}
+
+/** Short unit label for the confirmation toast. */
+function unitSuffix(
+  food: FoodItem,
+  amount: number,
+  unitKey: string,
+): string {
+  const unit = food.units.find((candidate) => candidate.key === unitKey);
+  if (!unit) return food.baseUnit;
+  if (amount === 1) return unit.label;
+  if (!Number.isInteger(amount)) return unit.few ?? unit.label;
+  if (!unit.few || !unit.many) return unit.label;
+  const mod10 = amount % 10;
+  const mod100 = amount % 100;
+  if (mod10 === 1 && mod100 !== 11) return unit.label;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return unit.few;
+  return unit.many;
 }

@@ -23,7 +23,7 @@ const HISTORY_DAYS = 7;
 
 /** History screen built from the actual stored food entries. */
 export function HistoryView() {
-  const { ready, entries, targets } = useDiary();
+  const { ready, entries, targets, findFood } = useDiary();
 
   if (!ready) return <LoadingState />;
 
@@ -38,7 +38,7 @@ export function HistoryView() {
       shortWeekday: weekdayShort(date),
       calories:
         dayEntries.length > 0
-          ? nutritionOfEntries(resolveEntries(dayEntries)).calories
+          ? nutritionOfEntries(resolveEntries(dayEntries, findFood)).calories
           : null,
       isToday: key === today,
     };

@@ -11,7 +11,7 @@ export default function FoodsPage() {
     <>
       <PageHeader
         title="Продукты"
-        subtitle="База продуктов с пищевой ценностью на 100 грамм"
+        subtitle="Пищевая ценность на 100 г или 100 мл · значения справочные"
       />
       <FoodsExplorer />
     </>

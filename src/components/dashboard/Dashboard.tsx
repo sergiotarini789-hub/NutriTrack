@@ -22,7 +22,7 @@ import { MealCard } from "./MealCard";
 
 /** "Сегодня" dashboard driven by real diary data. */
 export function Dashboard() {
-  const { ready, entries, targets, removeEntry } = useDiary();
+  const { ready, entries, targets, findFood } = useDiary();
   const [addOpen, setAddOpen] = useState(false);
   const [addMeal, setAddMeal] = useState<MealType | null>(null);
   const date = useMemo(() => new Date(), []);
@@ -31,7 +31,7 @@ export function Dashboard() {
 
   const today = todayKey();
   const totals = nutritionOfEntries(
-    resolveEntries(entriesForDate(entries, today)),
+    resolveEntries(entriesForDate(entries, today), findFood),
   );
 
   return (
@@ -54,8 +54,10 @@ export function Dashboard() {
               mealId={meal.id}
               name={meal.name}
               icon={meal.icon}
-              items={resolveEntries(entriesForMeal(entries, today, meal.id))}
-              onDelete={removeEntry}
+              items={resolveEntries(
+                entriesForMeal(entries, today, meal.id),
+                findFood,
+              )}
               onAdd={() => {
                 setAddMeal(meal.id);
                 setAddOpen(true);

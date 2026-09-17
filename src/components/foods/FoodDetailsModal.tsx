@@ -1,8 +1,14 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { Toast } from "@/components/ui/Toast";
+import { useDiary } from "@/lib/diary";
+import { categoryIcon, getCategory } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
+import { baseUnitLabel, formatServing } from "@/lib/nutrition";
+import { useRef, useState } from "react";
 import type { FoodItem } from "@/lib/types";
 
 interface FoodDetailsModalProps {
@@ -11,32 +17,64 @@ interface FoodDetailsModalProps {
   onAddToDiary: (food: FoodItem) => void;
 }
 
-/** Food details with per-100 g nutrition and an "add to diary" action. */
+/** Food details: per-100 values, servings, source and diary shortcut. */
 export function FoodDetailsModal({
   food,
   onClose,
   onAddToDiary,
 }: FoodDetailsModalProps) {
+  const { deleteUserFood } = useDiary();
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleDelete() {
+    if (!food) return;
+    deleteUserFood(food.id);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(`Продукт «${food.name}» удалён`);
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
+    onClose();
+  }
+
   return (
-    <Modal
-      open={food !== null}
-      onClose={onClose}
-      title={food?.name ?? ""}
-      footer={
-        food ? (
-          <Button size="lg" className="w-full" onClick={() => onAddToDiary(food)}>
-            Добавить в дневник
-          </Button>
-        ) : undefined
-      }
-    >
-      {food && <FoodDetails food={food} />}
-    </Modal>
+    <>
+      <Modal
+        open={food !== null}
+        onClose={onClose}
+        title={food?.name ?? ""}
+        footer={
+          food ? (
+            <div className="flex gap-3">
+              {food.sourceType === "user" && (
+                <Button variant="secondary" size="lg" onClick={handleDelete}>
+                  <Trash2 className="h-4 w-4" />
+                  Удалить
+                </Button>
+              )}
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={() => onAddToDiary(food)}
+              >
+                Добавить в дневник
+              </Button>
+            </div>
+          ) : undefined
+        }
+      >
+        {food && <FoodDetails food={food} />}
+      </Modal>
+      <Toast message={toast} />
+    </>
   );
 }
 
 function FoodDetails({ food }: { food: FoodItem }) {
-  const Icon = food.icon;
+  const Icon = categoryIcon(food.category);
+  const category = getCategory(food.category);
+  const extraUnits = food.units.filter(
+    (unit) => unit.key !== food.baseUnit,
+  );
 
   return (
     <div>
@@ -49,13 +87,18 @@ function FoodDetails({ food }: { food: FoodItem }) {
             {food.name}
           </p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">
-            Пищевая ценность на 100 г
+            {category.name}
           </p>
         </div>
       </div>
 
       <div className="mt-5 rounded-2xl border border-border p-4">
         <div className="flex items-baseline justify-between">
+          <span className="text-sm text-muted-foreground">
+            Пищевая ценность на 100 {baseUnitLabel(food)}
+          </span>
+        </div>
+        <div className="mt-1.5 flex items-baseline justify-between">
           <span className="text-sm text-muted-foreground">Калории</span>
           <span className="text-xl font-bold tabular-nums text-foreground">
             {formatNumber(food.calories)}{" "}
@@ -83,6 +126,40 @@ function FoodDetails({ food }: { food: FoodItem }) {
           </div>
         </div>
       </div>
+
+      {extraUnits.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-border p-4">
+          <p className="text-[13px] font-medium text-muted-foreground">
+            Порции
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {extraUnits.map((unit) => (
+              <li
+                key={unit.key}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-foreground">
+                  1 {unit.label} ≈ {formatNumber(unit.base)} {baseUnitLabel(food)}
+                </span>
+              </li>
+            ))}
+            {food.servingOptions.length > 0 && (
+              <li className="pt-1 text-[13px] text-muted-foreground">
+                Быстрый выбор:{" "}
+                {food.servingOptions
+                  .slice(0, 4)
+                  .map((serving) => formatServing(food, serving))
+                  .join(", ")}
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+        {food.sourceName && <>Источник: {food.sourceName}. </>}
+        Значения носят справочный характер.
+      </p>
     </div>
   );
 }
