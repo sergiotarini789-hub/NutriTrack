@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ThemeWatcher } from "@/components/app/ThemeWatcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,8 +18,11 @@ export const viewport: Viewport = {
   ],
 };
 
-/** Applies the saved (or system) theme before hydration to avoid a flash. */
-const themeInitScript = `(function(){try{var s=localStorage.getItem("nutritrack-theme");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(d){document.documentElement.classList.add("dark")}}catch(e){}})()`;
+/**
+ * Applies the saved theme (system / light / dark) before hydration to
+ * avoid a flash. Legacy values "light"/"dark" keep their meaning.
+ */
+const themeInitScript = `(function(){try{var t=localStorage.getItem("nutritrack-theme");var d=t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.classList.add("dark")}}catch(e){}})()`;
 
 export default function RootLayout({
   children,
@@ -27,6 +31,7 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <ThemeWatcher />
         {children}
       </body>
     </html>

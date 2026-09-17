@@ -7,7 +7,7 @@ import { Toast } from "@/components/ui/Toast";
 import { defaultMealForNow, mealName } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
 import { formatNumber } from "@/lib/format";
-import { parseAmountInput } from "@/lib/nutrition";
+import { nutritionForServing, parseAmountInput } from "@/lib/nutrition";
 import type { FoodItem, MealType } from "@/lib/types";
 import { CustomFoodForm } from "./CustomFoodForm";
 import { FoodQuantity } from "./FoodQuantity";
@@ -44,7 +44,9 @@ export function AddFoodModal({
   const [unitKey, setUnitKey] = useState("g");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchCategory, setSearchCategory] = useState<string>("all");
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; detail?: string } | null>(
+    null,
+  );
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const food: FoodItem | null = useMemo(
@@ -99,9 +101,9 @@ export function AddFoodModal({
     showToast(`Продукт «${next.name}» создан`);
   }
 
-  function showToast(message: string) {
+  function showToast(message: string, detail?: string) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(message);
+    setToast({ message, detail });
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }
 
@@ -121,8 +123,10 @@ export function AddFoodModal({
       amount: parsedAmount,
       unit: unitKey,
     });
+    const kcal = nutritionForServing(food, parsedAmount, unitKey).calories;
     showToast(
-      `Добавлено: ${food.name} · ${formatNumber(parsedAmount)} ${unitSuffix(food, parsedAmount, unitKey)} (${mealName(meal)})`,
+      "Добавлено",
+      `${food.name} · +${formatNumber(kcal)} ккал · ${mealName(meal)}`,
     );
     onClose();
   }
@@ -147,32 +151,8 @@ export function AddFoodModal({
           ) : undefined
         }
       >
-        {step === "search" && (
-          <FoodSearch
-            onSelect={selectFood}
-            onCreate={() => setStep("create")}
-            query={searchQuery}
-            onQueryChange={setSearchQuery}
-            category={searchCategory}
-            onCategoryChange={setSearchCategory}
-          />
-        )}
-
-        {step === "create" && <CustomFoodForm onCreated={handleCreated} />}
-
-        {step === "quantity" &&
-          (food ? (
-            <FoodQuantity
-              food={food}
-              amount={amount}
-              unitKey={unitKey}
-              onAmountChange={setAmount}
-              onUnitChange={setUnitKey}
-              onSubmit={handleAdd}
-              meal={meal}
-              onMealChange={setMeal}
-            />
-          ) : (
+        <div key={step} className="animate-step-in">
+          {step === "search" && (
             <FoodSearch
               onSelect={selectFood}
               onCreate={() => setStep("create")}
@@ -181,23 +161,36 @@ export function AddFoodModal({
               category={searchCategory}
               onCategoryChange={setSearchCategory}
             />
-          ))}
+          )}
+
+          {step === "create" && <CustomFoodForm onCreated={handleCreated} />}
+
+          {step === "quantity" &&
+            (food ? (
+              <FoodQuantity
+                food={food}
+                amount={amount}
+                unitKey={unitKey}
+                onAmountChange={setAmount}
+                onUnitChange={setUnitKey}
+                onSubmit={handleAdd}
+                meal={meal}
+                onMealChange={setMeal}
+              />
+            ) : (
+              <FoodSearch
+                onSelect={selectFood}
+                onCreate={() => setStep("create")}
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
+                category={searchCategory}
+                onCategoryChange={setSearchCategory}
+              />
+            ))}
+        </div>
       </Modal>
-      <Toast message={toast} />
+      <Toast message={toast?.message ?? null} detail={toast?.detail} />
     </>
   );
 }
 
-/** Short unit label for the confirmation toast. */
-function unitSuffix(food: FoodItem, amount: number, unitKey: string): string {
-  const unit = food.units.find((candidate) => candidate.key === unitKey);
-  if (!unit) return food.baseUnit;
-  if (amount === 1) return unit.label;
-  if (!Number.isInteger(amount)) return unit.few ?? unit.label;
-  if (!unit.few || !unit.many) return unit.label;
-  const mod10 = amount % 10;
-  const mod100 = amount % 100;
-  if (mod10 === 1 && mod100 !== 11) return unit.label;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return unit.few;
-  return unit.many;
-}

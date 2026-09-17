@@ -122,6 +122,8 @@ export interface FoodEntry {
 }
 
 export interface UserProfile {
+  /** Optional display name from onboarding; used for greetings. */
+  name?: string;
   gender: Gender | null;
   /** Years. */
   age: number | null;

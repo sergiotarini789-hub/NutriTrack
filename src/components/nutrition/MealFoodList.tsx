@@ -16,24 +16,57 @@ import {
   unitLabelFor,
   type ResolvedEntry,
 } from "@/lib/nutrition";
+import { prefersReducedMotion } from "@/lib/motion";
 import { EditEntryModal } from "./EditEntryModal";
+import { Toast } from "@/components/ui/Toast";
 
 interface MealFoodListProps {
   items: ResolvedEntry[];
 }
 
-/** Compact food rows with quick amount edit, full edit and delete. */
+/** Compact food rows with entrance/exit motion, quick edit and delete. */
 export function MealFoodList({ items }: MealFoodListProps) {
+  const { removeEntry } = useDiary();
   const [editItem, setEditItem] = useState<ResolvedEntry | null>(null);
+  const [toast, setToast] = useState<{ message: string; detail: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleDeleted(item: ResolvedEntry) {
+    removeEntry(item.entry.id);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    const kcal = nutritionForServing(
+      item.food,
+      item.entry.amount,
+      item.entry.unit,
+    ).calories;
+    setToast({
+      message: "Удалено",
+      detail: `${item.food.name} · −${formatNumber(kcal)} ккал`,
+    });
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
+  }
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   return (
     <>
       <ul className="space-y-0.5">
         {items.map((item) => (
-          <MealFoodRow key={item.entry.id} item={item} onEdit={setEditItem} />
+          <MealFoodRow
+            key={item.entry.id}
+            item={item}
+            onEdit={setEditItem}
+            onDeleted={handleDeleted}
+          />
         ))}
       </ul>
       <EditEntryModal item={editItem} onClose={() => setEditItem(null)} />
+      <Toast message={toast?.message ?? null} detail={toast?.detail ?? null} />
     </>
   );
 }
@@ -41,17 +74,35 @@ export function MealFoodList({ items }: MealFoodListProps) {
 interface MealFoodRowProps {
   item: ResolvedEntry;
   onEdit: (item: ResolvedEntry | null) => void;
+  /** Called after the exit animation finishes. */
+  onDeleted: (item: ResolvedEntry) => void;
 }
 
-function MealFoodRow({ item, onEdit }: MealFoodRowProps) {
-  const { removeEntry } = useDiary();
+function MealFoodRow({ item, onEdit, onDeleted }: MealFoodRowProps) {
   const [inlineOpen, setInlineOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const { entry, food } = item;
   const nutrition = nutritionForServing(food, entry.amount, entry.unit);
   const FoodIcon = categoryIcon(food.category);
 
+  function handleDelete() {
+    if (removing) return;
+    if (prefersReducedMotion()) {
+      onDeleted(item);
+      return;
+    }
+    // Slide the row out first so the change is perceivable.
+    setRemoving(true);
+    window.setTimeout(() => onDeleted(item), 220);
+  }
+
   return (
-    <li className="group flex items-center gap-2.5 rounded-2xl px-1 py-2 transition-colors hover:bg-foreground/[0.03]">
+    <li
+      className={cn(
+        "animate-row-in group flex items-center gap-2.5 rounded-2xl px-1 py-2 transition-colors hover:bg-foreground/[0.03]",
+        removing && "animate-row-out pointer-events-none",
+      )}
+    >
       {/* Food category visual */}
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.05] text-muted-foreground">
         <FoodIcon className="h-[17px] w-[17px]" />
@@ -101,7 +152,7 @@ function MealFoodRow({ item, onEdit }: MealFoodRowProps) {
         </button>
         <button
           type="button"
-          onClick={() => removeEntry(entry.id)}
+          onClick={handleDelete}
           aria-label={`Удалить: ${food.name}`}
           title="Удалить"
           className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"

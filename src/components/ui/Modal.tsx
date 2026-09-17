@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, X } from "lucide-react";
+import { prefersReducedMotion } from "@/lib/motion";
+import { cn } from "@/lib/cn";
 
 interface ModalProps {
   open: boolean;
@@ -20,16 +22,34 @@ const FOCUSABLE_SELECTOR =
 /**
  * Accessible modal dialog: bottom sheet with a grab handle on mobile,
  * centered dialog on desktop. Handles Esc, backdrop click, focus
- * trapping and scroll lock.
+ * trapping, scroll lock and a short exit animation on close.
  */
+const EXIT_MS = 200;
+
 export function Modal({ open, onClose, title, children, footer, onBack }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  // Keeps the panel mounted briefly while the exit animation plays.
+  const [render, setRender] = useState(open);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      setRender(true);
+      return;
+    }
+    if (!render) return;
+    if (prefersReducedMotion()) {
+      setRender(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setRender(false), EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [open, render]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,12 +93,17 @@ export function Modal({ open, onClose, title, children, footer, onBack }: ModalP
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!render) return null;
+
+  const exiting = !open;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
       <div
-        className="animate-fade-in absolute inset-0 bg-black/45"
+        className={cn(
+          "absolute inset-0 bg-black/45",
+          exiting ? "animate-fade-out" : "animate-fade-in",
+        )}
         onClick={() => onCloseRef.current()}
         aria-hidden="true"
       />
@@ -88,7 +113,12 @@ export function Modal({ open, onClose, title, children, footer, onBack }: ModalP
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="animate-sheet-in relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-card shadow-2xl outline-none sm:animate-scale-in sm:max-h-[85dvh] sm:rounded-[28px]"
+        className={cn(
+          "relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-card shadow-2xl outline-none sm:max-h-[85dvh] sm:rounded-[28px]",
+          exiting
+            ? "animate-sheet-out sm:animate-scale-out"
+            : "animate-sheet-in sm:animate-scale-in",
+        )}
       >
         {/* Mobile grab handle */}
         <div

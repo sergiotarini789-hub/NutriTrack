@@ -15,7 +15,7 @@ import { loadUnits, saveUnits, type Units } from "@/lib/storage";
 import type { ActivityLevel, Gender, Goal } from "@/lib/types";
 import { SettingRow } from "./SettingRow";
 import { SettingsSection } from "./SettingsSection";
-import { ThemeToggle } from "./ThemeToggle";
+import { ThemeSelector } from "./ThemeSelector";
 
 interface Option<T extends string> {
   value: T;
@@ -246,9 +246,10 @@ export function SettingsForm() {
         </SettingsSection>
 
         <SettingsSection title="Приложение">
-          <SettingRow label="Тема">
-            <ThemeToggle />
-          </SettingRow>
+          <div className="px-5 py-4 sm:px-6">
+            <p className="mb-2.5 text-[15px] text-foreground">Тема</p>
+            <ThemeSelector />
+          </div>
 
           <SettingRow label="Единицы измерения">
             <div className="relative">

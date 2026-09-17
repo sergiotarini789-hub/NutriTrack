@@ -79,7 +79,7 @@
 
 /* --- Motion -------------------------------------------------- */
 
-/* Onboarding step / expanding meal content */
+/* Onboarding step / expanding meal content / sheet steps */
 @keyframes step-in {
   from {
     opacity: 0;
@@ -95,6 +95,98 @@
   animation: step-in 0.22s ease-out;
 }
 
+/* Staggered dashboard entrance (opacity + tiny translate) */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-rise {
+  animation: rise-in 0.35s ease-out both;
+}
+
+/* Page-level transition between sections */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-page-in {
+  animation: page-in 0.2s ease-out both;
+}
+
+/* Food row entrance inside a meal */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-row-in {
+  animation: row-in 0.25s ease-out both;
+}
+
+/* Food row exit before removal */
+@keyframes row-out {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@utility animate-row-out {
+  animation: row-out 0.22s ease-in both;
+}
+
+/* Launch splash logo */
+@keyframes logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-logo-in {
+  animation: logo-in 0.4s cubic-bezier(0.32, 0.72, 0.28, 1) both;
+}
+
+/* Launch splash text */
+@keyframes splash-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-splash-text-in {
+  animation: splash-text-in 0.35s ease-out both;
+}
+
 /* Modal backdrop */
 @keyframes fade-in {
   from {
@@ -102,6 +194,15 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 
@@ -117,6 +218,17 @@
   }
 }
 
+@keyframes sheet-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
 /* Centered dialog (desktop) */
 @keyframes scale-in {
   from {
@@ -129,23 +241,74 @@
   }
 }
 
+@keyframes scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
 @utility animate-fade-in {
   animation: fade-in 0.18s ease-out;
+}
+
+@utility animate-fade-out {
+  animation: fade-out 0.18s ease-in both;
 }
 
 @utility animate-sheet-in {
   animation: sheet-in 0.3s cubic-bezier(0.32, 0.72, 0.28, 1);
 }
 
+@utility animate-sheet-out {
+  animation: sheet-out 0.2s ease-in both;
+}
+
 @utility animate-scale-in {
   animation: scale-in 0.22s cubic-bezier(0.32, 0.72, 0.28, 1);
+}
+
+@utility animate-scale-out {
+  animation: scale-out 0.18s ease-in both;
+}
+
+/* Gentle cross-fade of colors when the user switches the theme */
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    fill 0.25s ease,
+    stroke 0.25s ease,
+    box-shadow 0.25s ease !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-step-in,
   .animate-fade-in,
+  .animate-fade-out,
   .animate-sheet-in,
-  .animate-scale-in {
+  .animate-sheet-out,
+  .animate-scale-in,
+  .animate-scale-out,
+  .animate-rise,
+  .animate-page-in,
+  .animate-row-in,
+  .animate-row-out,
+  .animate-logo-in,
+  .animate-splash-text-in,
+  .theme-anim,
+  .theme-anim *,
+  .theme-anim *::before,
+  .theme-anim *::after {
     animation: none;
+    transition: none;
   }
 }

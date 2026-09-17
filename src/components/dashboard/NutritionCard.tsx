@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/ProgressBar";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
+import { useMountedForAnimation } from "@/lib/motion";
 
 /** Soft background tint per macro — one cohesive nutrition strip. */
 const TINTS: Record<ProgressColor, string> = {
@@ -28,7 +29,8 @@ interface MacroStatProps {
 /**
  * One compact macro indicator inside a softly tinted block: colored
  * dot + label, large current value against the target, slim progress
- * bar. Three of these form the nutrition overview in the hero.
+ * bar that animates in from zero on open and transitions on changes.
+ * Three of these form the nutrition overview in the hero.
  */
 export function MacroStat({
   label,
@@ -38,6 +40,8 @@ export function MacroStat({
   color,
   over = false,
 }: MacroStatProps) {
+  const animated = useMountedForAnimation();
+
   return (
     <div className={cn("min-w-0 rounded-2xl px-3 py-3 sm:px-3.5", TINTS[color])}>
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -53,7 +57,7 @@ export function MacroStat({
         </span>
       </p>
       <div className="mt-2.5">
-        <ProgressBar value={current} max={target} color={color} />
+        <ProgressBar value={animated ? current : 0} max={target} color={color} />
       </div>
     </div>
   );

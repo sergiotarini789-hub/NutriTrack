@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
+import { useAppLaunch } from "@/components/app/AppLaunch";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { DailyNutrition } from "@/components/nutrition/DailyNutrition";
 import { Button } from "@/components/ui/Button";
@@ -9,8 +10,9 @@ import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MEALS } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
-import { formatDayMonth, todayKey } from "@/lib/dates";
+import { formatDayMonth, todayKey, weekdayLong } from "@/lib/dates";
 import { formatNumber, pluralize } from "@/lib/format";
+import { todayGreeting } from "@/lib/greeting";
 import {
   entriesForDate,
   entriesForMeal,
@@ -20,13 +22,24 @@ import {
 import type { MealType } from "@/lib/types";
 import { MealCard } from "./MealCard";
 
+/** Stagger step: hidden until the launch moment, then a quick rise. */
+function rise(launched: boolean, delayMs: number, extraClass = "") {
+  const animated = launched ? "animate-rise" : "opacity-0";
+  return {
+    className: extraClass ? `${animated} ${extraClass}` : animated,
+    style: launched ? { animationDelay: `${delayMs}ms` } : undefined,
+  };
+}
+
 /**
  * "Сегодня" screen: calorie hero with the day's macro overview,
- * followed by the unified diary of meals. All values come from the
- * real diary entries.
+ * followed by the unified diary of meals. Sections enter with a short
+ * stagger after the launch sequence; all values come from the real
+ * diary entries.
  */
 export function Dashboard() {
-  const { ready, entries, targets, findFood } = useDiary();
+  const { ready, entries, targets, profile, findFood } = useDiary();
+  const { launched } = useAppLaunch();
   const [addOpen, setAddOpen] = useState(false);
   const [addMeal, setAddMeal] = useState<MealType | null>(null);
   const date = useMemo(() => new Date(), []);
@@ -42,24 +55,29 @@ export function Dashboard() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="mb-1">
+      <div {...rise(launched, 0, "mb-1")}>
         <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-primary">
-          {formatDayMonth(date)}
+          {todayGreeting(profile?.name)}
         </p>
         <h1 className="mt-0.5 text-[26px] font-bold tracking-tight text-foreground lg:text-3xl">
           Сегодня
         </h1>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          {formatDayMonth(date)} · {weekdayLong(date)}
+        </p>
       </div>
 
-      <DailyNutrition totals={totals} targets={targets} />
+      <div {...rise(launched, 70)}>
+        <DailyNutrition totals={totals} targets={targets} />
+      </div>
 
-      <section>
+      <section {...rise(launched, 140)}>
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground">
               Приёмы пищи
             </h2>
-            {todayEntries.length > 0 && (
+            {todayEntries.length > 0 ? (
               <p className="mt-0.5 text-[13px] text-muted-foreground">
                 {mealsWithFood}{" "}
                 {pluralize(
@@ -70,6 +88,10 @@ export function Dashboard() {
                 )}{" "}
                 · {todayEntries.length}{" "}
                 {pluralize(todayEntries.length, "продукт", "продукта", "продуктов")}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                Начни свой день с первого приёма пищи.
               </p>
             )}
           </div>
@@ -97,17 +119,19 @@ export function Dashboard() {
         </Card>
       </section>
 
-      <Button
-        size="lg"
-        className="mx-auto w-full max-w-sm"
-        onClick={() => {
-          setAddMeal(null);
-          setAddOpen(true);
-        }}
-      >
-        <Plus className="h-5 w-5" />
-        Добавить еду
-      </Button>
+      <div {...rise(launched, 210)}>
+        <Button
+          size="lg"
+          className="mx-auto w-full max-w-sm"
+          onClick={() => {
+            setAddMeal(null);
+            setAddOpen(true);
+          }}
+        >
+          <Plus className="h-5 w-5" />
+          Добавить еду
+        </Button>
+      </div>
 
       <AddFoodModal
         open={addOpen}

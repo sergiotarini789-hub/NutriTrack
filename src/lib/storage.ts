@@ -273,6 +273,10 @@ export function loadProfile(): UserProfile {
   const raw = readJson<unknown>(STORAGE_KEYS.profile);
   if (!isRecord(raw)) return DEFAULT_PROFILE;
   return {
+    name:
+      typeof raw.name === "string" && raw.name.trim()
+        ? raw.name.trim().slice(0, 40)
+        : undefined,
     gender: parseGender(raw.gender),
     age: positiveNumber(raw.age),
     height: positiveNumber(raw.height),

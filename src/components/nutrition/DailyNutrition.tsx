@@ -1,5 +1,8 @@
+"use client";
+
 import { CalorieRing } from "@/components/dashboard/CalorieRing";
 import { MacroStat } from "@/components/dashboard/NutritionCard";
+import { useAppLaunch } from "@/components/app/AppLaunch";
 import { Card } from "@/components/ui/Card";
 import { formatNumber } from "@/lib/format";
 import type { NutritionSummary, NutritionTargets } from "@/lib/types";
@@ -13,15 +16,21 @@ interface DailyNutritionProps {
  * Dashboard hero: the calorie ring as the centerpiece of the app —
  * large number, "ккал" unit, target beneath and the remaining amount
  * in a prominent pill — followed by one cohesive macro visualization
- * (three softly tinted indicators).
+ * (three softly tinted indicators). The inner block is keyed on the
+ * launch moment so the ring sweep, count-up and macro bars start
+ * exactly when the Today screen becomes visible.
  */
 export function DailyNutrition({ totals, targets }: DailyNutritionProps) {
+  const { launched } = useAppLaunch();
   const remaining = targets.calories - totals.calories;
   const over = remaining < 0;
 
   return (
     <Card className="relative overflow-hidden p-5 sm:p-7">
-      <div className="relative flex flex-col items-center gap-6 lg:flex-row lg:gap-12">
+      <div
+        key={launched ? "live" : "idle"}
+        className="relative flex flex-col items-center gap-6 lg:flex-row lg:gap-12"
+      >
         {/* Calorie status — the visual centerpiece */}
         <div className="relative flex shrink-0 flex-col items-center gap-4">
           {/* Soft accent glow hugging the ring */}
