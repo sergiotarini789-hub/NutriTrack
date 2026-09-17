@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, Mars, Venus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
+import { activityOptions, goalOptions } from "@/lib/app-data";
 import { cn } from "@/lib/cn";
-import { activityOptions, goalOptions } from "@/lib/mock-data";
+import { parseAmountInput } from "@/lib/nutrition";
+import { loadOnboarded, saveOnboarded, saveProfile } from "@/lib/storage";
 import type { ActivityLevel, Gender, Goal } from "@/lib/types";
 
 const STEPS = [
@@ -109,27 +111,71 @@ function GenderOption({ label, icon: Icon, selected, onClick }: GenderOptionProp
   );
 }
 
-/** First-launch profile setup wizard. */
+interface BodyParams {
+  age: string;
+  height: string;
+  weight: string;
+}
+
+/** First-launch profile setup wizard. Saves the profile locally. */
 export function OnboardingForm() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [gender, setGender] = useState<Gender | null>(null);
+  const [params, setParams] = useState<BodyParams>({
+    age: "",
+    height: "",
+    weight: "",
+  });
+  const [touched, setTouched] = useState<Record<keyof BodyParams, boolean>>({
+    age: false,
+    height: false,
+    weight: false,
+  });
   const [activity, setActivity] = useState<ActivityLevel | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
 
+  // Already completed onboarding — go straight to the app.
+  useEffect(() => {
+    if (loadOnboarded()) router.replace("/today");
+  }, [router]);
+
+  const setParam = (field: keyof BodyParams) => (value: string) =>
+    setParams((current) => ({ ...current, [field]: value }));
+  const blurParam = (field: keyof BodyParams) => () =>
+    setTouched((current) => ({ ...current, [field]: true }));
+
+  const parsedAge = parseAmountInput(params.age);
+  const parsedHeight = parseAmountInput(params.height);
+  const parsedWeight = parseAmountInput(params.weight);
+  const ageValid = parsedAge !== null && parsedAge > 0;
+  const heightValid = parsedHeight !== null && parsedHeight > 0;
+  const weightValid = parsedWeight !== null && parsedWeight > 0;
+
   const isLastStep = step === STEPS.length - 1;
   const canContinue =
-    step === 1 ||
-    (step === 0
+    step === 0
       ? gender !== null
-      : step === 2
-        ? activity !== null
-        : goal !== null);
+      : step === 1
+        ? ageValid && heightValid && weightValid
+        : step === 2
+          ? activity !== null
+          : goal !== null;
 
   function handleContinue() {
     if (isLastStep) {
+      saveProfile({
+        gender,
+        age: parsedAge,
+        height: parsedHeight,
+        weight: parsedWeight,
+        activity,
+        goal,
+      });
+      saveOnboarded();
       router.push("/today");
     } else {
+      setTouched({ age: false, height: false, weight: false });
       setStep((current) => current + 1);
     }
   }
@@ -190,19 +236,31 @@ export function OnboardingForm() {
                 label="Возраст"
                 unit="лет"
                 placeholder="Например, 28"
-                inputMode="numeric"
+                inputMode="decimal"
+                value={params.age}
+                onChange={(event) => setParam("age")(event.target.value)}
+                onBlur={blurParam("age")}
+                error={touched.age && !ageValid ? "Введите число больше 0" : null}
               />
               <Input
                 label="Рост"
                 unit="см"
                 placeholder="Например, 178"
-                inputMode="numeric"
+                inputMode="decimal"
+                value={params.height}
+                onChange={(event) => setParam("height")(event.target.value)}
+                onBlur={blurParam("height")}
+                error={touched.height && !heightValid ? "Введите число больше 0" : null}
               />
               <Input
                 label="Вес"
                 unit="кг"
                 placeholder="Например, 76"
-                inputMode="numeric"
+                inputMode="decimal"
+                value={params.weight}
+                onChange={(event) => setParam("weight")(event.target.value)}
+                onBlur={blurParam("weight")}
+                error={touched.weight && !weightValid ? "Введите число больше 0" : null}
               />
             </div>
           )}

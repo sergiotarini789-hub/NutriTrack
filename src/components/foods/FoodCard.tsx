@@ -2,12 +2,18 @@ import { Card } from "@/components/ui/Card";
 import { formatNumber } from "@/lib/format";
 import type { FoodItem } from "@/lib/types";
 
+interface FoodCardProps {
+  food: FoodItem;
+  /** When provided, the card becomes a clickable button. */
+  onClick?: () => void;
+}
+
 /** Food card with nutrition values per 100 g. */
-export function FoodCard({ food }: { food: FoodItem }) {
+export function FoodCard({ food, onClick }: FoodCardProps) {
   const Icon = food.icon;
 
-  return (
-    <Card className="flex items-center gap-4 p-4 sm:p-5">
+  const content = (
+    <>
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </span>
@@ -38,6 +44,20 @@ export function FoodCard({ food }: { food: FoodItem }) {
         </p>
         <p className="text-xs text-muted-foreground">ккал / 100 г</p>
       </div>
-    </Card>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-xs transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:p-5"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <Card className="flex items-center gap-4 p-4 sm:p-5">{content}</Card>;
 }

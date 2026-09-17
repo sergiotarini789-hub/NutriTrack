@@ -1,4 +1,8 @@
-import { ProgressBar, progressColors, type ProgressColor } from "@/components/ui/ProgressBar";
+import {
+  ProgressBar,
+  progressColors,
+  type ProgressColor,
+} from "@/components/ui/ProgressBar";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
@@ -8,6 +12,8 @@ interface NutritionCardProps {
   target: number;
   unit: string;
   color: ProgressColor;
+  /** Highlights the value when the target is exceeded. */
+  over?: boolean;
 }
 
 /** Label, current / target value and a progress bar for one nutrient. */
@@ -17,6 +23,7 @@ export function NutritionCard({
   target,
   unit,
   color,
+  over = false,
 }: NutritionCardProps) {
   return (
     <div>
@@ -26,7 +33,12 @@ export function NutritionCard({
           {label}
         </span>
         <span className="text-sm tabular-nums text-muted-foreground">
-          <span className="font-semibold text-foreground">
+          <span
+            className={cn(
+              "font-semibold",
+              over ? "text-red-600 dark:text-red-400" : "text-foreground",
+            )}
+          >
             {formatNumber(current)}
           </span>{" "}
           / {formatNumber(target)} {unit}

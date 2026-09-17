@@ -11,7 +11,9 @@ export type ActivityLevel =
 
 export type Goal = "lose" | "maintain" | "gain";
 
-/** Nutrition values for a day: calories in kcal, macros in grams. */
+export type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
+
+/** Nutrition values: calories in kcal, macros in grams. */
 export interface NutritionSummary {
   calories: number;
   protein: number;
@@ -19,13 +21,8 @@ export interface NutritionSummary {
   carbs: number;
 }
 
-export interface Meal {
-  id: string;
-  name: string;
-  description: string;
-  calories: number;
-  icon: LucideIcon;
-}
+/** Daily nutrition targets. */
+export type NutritionTargets = NutritionSummary;
 
 /** Food item with nutrition values per 100 g. */
 export interface FoodItem {
@@ -38,15 +35,40 @@ export interface FoodItem {
   icon: LucideIcon;
 }
 
-export interface HistoryDay {
+/** A food added to a meal on a specific day. */
+export interface FoodEntry {
   id: string;
+  foodId: string;
+  mealType: MealType;
+  /** Amount in grams. */
+  amount: number;
+  /** Local date key in "YYYY-MM-DD" format. */
+  date: string;
+}
+
+export interface UserProfile {
+  gender: Gender | null;
+  /** Years. */
+  age: number | null;
+  /** Centimeters. */
+  height: number | null;
+  /** Kilograms. */
+  weight: number | null;
+  activity: ActivityLevel | null;
+  goal: Goal | null;
+}
+
+/** View-model for the history screens. */
+export interface HistoryDayInfo {
+  dateKey: string;
   /** e.g. "15 сентября" */
-  dateLabel: string;
+  label: string;
   /** e.g. "вторник" */
   weekdayLabel: string;
-  /** short weekday label for charts, e.g. "Вт" */
+  /** e.g. "Вт" */
   shortWeekday: string;
-  calories: number;
+  /** Total calories for the day, or null when there are no entries. */
+  calories: number | null;
   isToday: boolean;
 }
 

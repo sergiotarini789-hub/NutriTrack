@@ -2,14 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { Search, SearchX, X } from "lucide-react";
+import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { Button } from "@/components/ui/Button";
+import { foods } from "@/lib/food-data";
 import { formatNumber, pluralize } from "@/lib/format";
-import { foods } from "@/lib/mock-data";
+import type { FoodItem } from "@/lib/types";
 import { FoodCard } from "./FoodCard";
+import { FoodDetailsModal } from "./FoodDetailsModal";
 
-/** Food database screen body with client-side search over mock data. */
+/** Food database screen body with client-side search over local data. */
 export function FoodsExplorer() {
   const [query, setQuery] = useState("");
+  const [detailsFood, setDetailsFood] = useState<FoodItem | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addFoodId, setAddFoodId] = useState<string | null>(null);
 
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(
@@ -19,6 +25,12 @@ export function FoodsExplorer() {
         : foods,
     [normalized],
   );
+
+  function handleAddToDiary(food: FoodItem) {
+    setDetailsFood(null);
+    setAddFoodId(food.id);
+    setAddOpen(true);
+  }
 
   return (
     <div>
@@ -59,7 +71,7 @@ export function FoodsExplorer() {
       {/* Results */}
       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
         {filtered.map((food) => (
-          <FoodCard key={food.id} food={food} />
+          <FoodCard key={food.id} food={food} onClick={() => setDetailsFood(food)} />
         ))}
       </div>
 
@@ -84,6 +96,21 @@ export function FoodsExplorer() {
           </Button>
         </div>
       )}
+
+      {/* Details and add-food flows */}
+      <FoodDetailsModal
+        food={detailsFood}
+        onClose={() => setDetailsFood(null)}
+        onAddToDiary={handleAddToDiary}
+      />
+      <AddFoodModal
+        open={addOpen}
+        onClose={() => {
+          setAddOpen(false);
+          setAddFoodId(null);
+        }}
+        preselectedFoodId={addFoodId}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { cn } from "@/lib/cn";
 
 interface CalorieRingProps {
   current: number;
@@ -9,8 +10,10 @@ interface CalorieRingProps {
 export function CalorieRing({ current, target }: CalorieRingProps) {
   const radius = 70;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(current / target, 1);
+  // Visually cap at 100%, but the center value stays accurate.
+  const progress = target > 0 ? Math.min(current / target, 1) : 0;
   const offset = circumference * (1 - progress);
+  const over = current > target;
 
   return (
     <div className="relative h-40 w-40 sm:h-44 sm:w-44">
@@ -30,7 +33,11 @@ export function CalorieRing({ current, target }: CalorieRingProps) {
           fill="none"
           strokeWidth="12"
           strokeLinecap="round"
-          className="stroke-primary"
+          className={cn(
+            over
+              ? "stroke-red-500 dark:stroke-red-400"
+              : "stroke-primary",
+          )}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
         />
