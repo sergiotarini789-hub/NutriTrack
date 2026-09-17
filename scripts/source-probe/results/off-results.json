@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-09-17",
+  "api": "https://world.openfoodfacts.org/api/v2/product/{barcode}.json",
+  "fields": "code,product_name,product_name_ru,generic_name,brands,brand_owner,quantity,product_quantity,serving_size,serving_quantity,nutrition_data,nutrition_data_per,nutriments,image_front_url,image_small_url,countries,complete,owner,unique_scans_n,created_t,last_modified_t",
+  "transport": "Requests were issued through the platform fetch infrastructure because the sandbox's direct egress is restricted to a GitHub/npm allowlist. One GET per barcode, sequential batches of <=5, no retries, 20 requests total (plus 2 pre-flight sanity checks with a known barcode). HTTP status codes were not directly observable through this transport; the API's own status/status_verbose fields are authoritative and recorded verbatim below.",
+  "intendedUserAgent": "NutriTrackStage7AProbe/1.0 (one-off data source validation; https://github.com/sergiotarini789-hub/NutriTrack) — note: the platform fetch client sends its own User-Agent; the custom UA could not be attached from this environment.",
+  "apiVersionNote": "v2 is the current stable documented API (v3 is marked Work in Progress in official docs). Pre-flight check confirmed: existing barcode -> {\"status\":1,...}; missing barcode -> {\"status\":0,\"status_verbose\":\"product not found\"}.",
+  "requests": 20,
+  "results": [
+    {
+      "id": "prostokvashino-milk-25",
+      "expected": { "name": "Молоко Простоквашино пастеризованное 2,5%", "brand": "Простоквашино", "size": "930 ml" },
+      "barcode": "4607053473544",
+      "apiStatus": 1,
+      "response": {"code":"4607053473544","product":{"brands":"Простоквашино","code":"4607053473544","complete":0,"countries":"Russia","created_t":1468074504,"generic_name":"Молоко питьевое пастеризованное, массовая доля жира 2,5%","image_front_url":"https://images.openfoodfacts.org/images/products/460/705/347/3544/front_ru.12.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/705/347/3544/front_ru.12.200.jpg","last_modified_t":1766639117,"nutriments":{"carbohydrates":4.9,"carbohydrates_100g":4.9,"carbohydrates_serving":45.6,"carbohydrates_unit":"g","carbohydrates_value":4.9,"energy":225,"energy-kj":225,"energy-kj_100g":225,"energy-kj_serving":2090,"energy-kj_unit":"kJ","energy-kj_value":225,"energy_100g":225,"energy_serving":2090,"energy_unit":"kJ","energy_value":225,"fat":2.5,"fat_100g":2.5,"fat_serving":23.2,"fat_unit":"g","fat_value":2.5,"nova-group":1,"nova-group_100g":1,"nova-group_serving":1,"nova-group_unit":"","nova-group_value":1,"proteins":2.9,"proteins_100g":2.9,"proteins_serving":27,"proteins_unit":"g","proteins_value":2.9},"nutrition_data":"on","nutrition_data_per":"100ml","nutrition_data_prepared_per":"100g","product_name":"Молоко Простоквашино 2,5 % бут. пастеризованное 930мл","product_name_ru":"Молоко Простоквашино 2,5 % бут. пастеризованное 930мл","product_quantity":930,"product_quantity_unit":"ml","quantity":"930 ml","serving_quantity":930,"serving_size":"930 ml","unique_scans_n":17},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "prostokvashino-yogurt-strawberry",
+      "expected": { "name": "Йогурт Простоквашино Клубника 2,5%", "brand": "Простоквашино", "size": "480 g" },
+      "barcode": "4607161626993",
+      "apiStatus": 0,
+      "response": {"code":"4607161626993","status":0,"status_verbose":"product not found"}
+    },
+    {
+      "id": "domik-v-derevne-milk-25",
+      "expected": { "name": "Молоко Домик в деревне ультрапастеризованное 2,5%", "brand": "Домик в деревне", "size": "950 g" },
+      "barcode": "4690228007842",
+      "apiStatus": 1,
+      "response": {"code":"4690228007842","product":{"brands":"Домик в деревне","code":"4690228007842","complete":0,"countries":"Russia","created_t":1683687276,"image_front_url":"https://images.openfoodfacts.org/images/products/469/022/800/7842/front_ru.5.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/469/022/800/7842/front_ru.5.200.jpg","last_modified_t":1762572696,"nutriments":{"carbohydrates":4.7,"carbohydrates_100g":4.7,"carbohydrates_unit":"g","carbohydrates_value":4.7,"energy":223,"energy-kcal":53,"energy-kcal_100g":53,"energy-kcal_unit":"kcal","energy-kcal_value":53,"energy-kj":223,"energy-kj_100g":223,"energy-kj_unit":"kJ","energy-kj_value":223,"energy_100g":223,"energy_unit":"kJ","energy_value":223,"fat":2.5,"fat_100g":2.5,"fat_unit":"g","fat_value":2.5,"proteins":3,"proteins_100g":3,"proteins_unit":"g","proteins_value":3},"nutrition_data":"on","nutrition_data_per":"100ml","nutrition_data_prepared_per":"100g","product_name":"Молоко Домик в деревне  2,5%","product_name_ru":"Молоко Домик в деревне  2,5%","product_quantity":925,"product_quantity_unit":"ml","quantity":"925мл","unique_scans_n":5},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "ekoniva-milk-25",
+      "expected": { "name": "Молоко ЭкоНива ультрапастеризованное 2,5% БЗМЖ", "brand": "ЭкоНива", "size": "1000 ml" },
+      "barcode": "4680017920629",
+      "apiStatus": 1,
+      "response": {"code":"4680017920629","product":{"brands":"Эконива Econiva","code":"4680017920629","complete":0,"countries":"Russia","created_t":1656786017,"image_front_url":"https://images.openfoodfacts.org/images/products/468/001/792/0629/front_ru.3.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/468/001/792/0629/front_ru.3.200.jpg","last_modified_t":1786076018,"nutriments":{"carbohydrates":4.7,"carbohydrates_100g":4.7,"carbohydrates_serving":4.7,"carbohydrates_unit":"g","carbohydrates_value":4.7,"energy":223.4,"energy-kcal":53,"energy-kcal_100g":53,"energy-kcal_serving":53,"energy-kcal_unit":"kcal","energy-kcal_value":53,"energy-kj":223.4,"energy-kj_100g":223.4,"energy-kj_modifier":"~","energy-kj_serving":223,"energy-kj_unit":"kJ","energy-kj_value":223.4,"energy_100g":223.4,"energy_modifier":"~","energy_serving":223,"energy_unit":"kJ","energy_value":223.4,"fat":2.5,"fat_100g":2.5,"fat_serving":2.5,"fat_unit":"g","fat_value":2.5,"proteins":3,"proteins_100g":3,"proteins_serving":3,"proteins_unit":"g","proteins_value":3},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Молоко 2,5%","product_name_ru":"Молоко 2,5%","serving_quantity":100,"serving_size":"1 portion (100 g)","unique_scans_n":1},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "ekoniva-milk-32",
+      "expected": { "name": "Молоко ЭкоНива питьевое ультрапастеризованное 3,2%", "brand": "ЭкоНива", "size": "1000 ml" },
+      "barcode": "4680017920605",
+      "apiStatus": 1,
+      "response": {"code":"4680017920605","product":{"brands":"Эконива","code":"4680017920605","complete":0,"countries":"Russia","created_t":1689339872,"ecoscore_tags":["unknown"],"image_front_url":"https://images.openfoodfacts.org/images/products/468/001/792/0605/front_en.5.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/468/001/792/0605/front_en.5.200.jpg","last_modified_t":1689339878,"nutriments":{"carbohydrates":4.7,"carbohydrates_100g":4.7,"carbohydrates_unit":"g","carbohydrates_value":4.7,"energy":251,"energy-kcal":60,"energy-kcal_100g":60,"energy-kcal_unit":"kcal","energy-kcal_value":60,"energy_100g":251,"energy_unit":"kJ","energy_value":251,"fat":3.2,"fat_100g":3.2,"fat_unit":"g","fat_value":3.2,"proteins":3,"proteins_100g":3,"proteins_unit":"g","proteins_value":3},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Молоко 3.2%","unique_scans_n":1},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "activia-yogurt-len-chernika",
+      "expected": { "name": "Йогурт питьевой Активиа Лён-Черника-Злаки 2,1%", "brand": "Активиа", "size": "260 g" },
+      "barcode": "4600605026762",
+      "apiStatus": 0,
+      "response": {"code":"4600605026762","status":0,"status_verbose":"product not found"}
+    },
+    {
+      "id": "chudo-yogurt-peach-apricot",
+      "expected": { "name": "Йогурт питьевой Чудо Персик-абрикос 1,9%", "brand": "Чудо", "size": "260 g" },
+      "barcode": "4690228106873",
+      "apiStatus": 0,
+      "response": {"code":"4690228106873","status":0,"status_verbose":"product not found"}
+    },
+    {
+      "id": "agusha-curd-classic",
+      "expected": { "name": "Творог классический Агуша 4,5%", "brand": "Агуша", "size": "50 g" },
+      "barcode": "4602541000592",
+      "apiStatus": 1,
+      "response": {"code":"4602541000592","product":{"brands":"Агуша","code":"4602541000592","complete":0,"countries":"Russia","created_t":1470167015,"generic_name":"Творог детский «Агуша» классический, с массовой долей жира 4,5 %","image_front_url":"https://images.openfoodfacts.org/images/products/460/254/100/0592/front_ru.3.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/254/100/0592/front_ru.3.200.jpg","last_modified_t":1766644685,"nutriments":{"calcium":0.1,"calcium_100g":0.1,"calcium_serving":0.05,"calcium_unit":"g","calcium_value":0.1,"carbohydrates":3.5,"carbohydrates_100g":3.5,"carbohydrates_serving":1.75,"carbohydrates_unit":"g","carbohydrates_value":3.5,"energy":372,"energy-kcal":89,"energy-kcal_100g":89,"energy-kcal_serving":44.5,"energy-kcal_unit":"kcal","energy-kcal_value":89,"energy_100g":372,"energy_serving":186,"energy_unit":"kJ","energy_value":372,"fat":4.5,"fat_100g":4.5,"fat_serving":2.25,"fat_unit":"g","fat_value":4.5,"nova-group":3,"nova-group_100g":3,"nova-group_serving":3,"nova-group_unit":"","nova-group_value":3,"proteins":8.5,"proteins_100g":8.5,"proteins_serving":4.25,"proteins_unit":"g","proteins_value":8.5,"vitamin-k":2.5e-06,"vitamin-k_100g":2.5e-06,"vitamin-k_serving":1.25e-06,"vitamin-k_unit":"g","vitamin-k_value":2.5e-06},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Творог детский «Агуша» классический 4,5 %","product_name_ru":"Творог детский «Агуша» классический 4,5 %","product_quantity":50,"product_quantity_unit":"g","quantity":"50 g","serving_quantity":50,"serving_size":"50 g","unique_scans_n":2},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "miratorg-nuggets",
+      "expected": { "name": "Наггетсы куриные классические Мираторг (замороженные)", "brand": "Мираторг", "size": "300 g" },
+      "barcode": "4607177073095",
+      "apiStatus": 1,
+      "response": {"code":"4607177073095","product":{"brands":"Мираторг","code":"4607177073095","complete":0,"countries":"Japan","created_t":1561571332,"image_front_url":"https://images.openfoodfacts.org/images/products/460/717/707/3095/front_en.11.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/717/707/3095/front_en.11.200.jpg","last_modified_t":1736063118,"nutriments":{"carbohydrates":14,"carbohydrates_100g":14,"carbohydrates_serving":42,"carbohydrates_unit":"g","carbohydrates_value":14,"energy":753,"energy-kcal":180,"energy-kcal_100g":180,"energy-kcal_serving":540,"energy-kcal_unit":"kcal","energy-kcal_value":180,"energy_100g":753,"energy_serving":2260,"energy_unit":"kJ","energy_value":753,"fat":7.5,"fat_100g":7.5,"fat_serving":22.5,"fat_unit":"g","fat_value":7.5,"proteins":13.5,"proteins_100g":13.5,"proteins_serving":40.5,"proteins_unit":"g","proteins_value":13.5},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Наггетсы куриные классические (Мираторг)","product_name_ru":"Наггетсы Куриные Классические","product_quantity":100,"product_quantity_unit":"g","quantity":"100.0g","serving_quantity":300,"serving_size":"300 g","unique_scans_n":2},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "heinz-ketchup-550",
+      "expected": { "name": "Кетчуп Heinz Томатный (дой-пак)", "brand": "Heinz", "size": "550 g" },
+      "barcode": "4601674084875",
+      "apiStatus": 1,
+      "response": {"code":"4601674084875","product":{"brands":"Heinz","code":"4601674084875","complete":0,"countries":"Belarus, Russia","created_t":1715509984,"image_front_url":"https://images.openfoodfacts.org/images/products/460/167/408/4875/front_ru.3.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/167/408/4875/front_ru.3.200.jpg","last_modified_t":1771272647,"nutriments":{"carbohydrates":26,"carbohydrates_100g":26,"carbohydrates_unit":"g","carbohydrates_value":26,"energy":460,"energy-kcal":110,"energy-kcal_100g":110,"energy-kcal_unit":"kcal","energy-kcal_value":110,"energy_100g":460,"energy_unit":"kJ","energy_value":460,"fat":0.1,"fat_100g":0.1,"fat_unit":"g","fat_value":0.1,"proteins":1.5,"proteins_100g":1.5,"proteins_unit":"g","proteins_value":1.5},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","unique_scans_n":11},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "heinz-ketchup-460",
+      "expected": { "name": "Кетчуп Heinz Томатный (пластиковая бутылка)", "brand": "Heinz", "size": "460 g" },
+      "barcode": "4601674084288",
+      "apiStatus": 1,
+      "response": {"code":"4601674084288","product":{"brands":"Heinz","code":"4601674084288","complete":0,"countries":"Armenia","created_t":1778623212,"image_front_url":"https://images.openfoodfacts.org/images/products/460/167/408/4288/front_ru.5.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/167/408/4288/front_ru.5.200.jpg","last_modified_t":1788172297,"nutriments":{"carbohydrates":26,"carbohydrates_100g":26,"carbohydrates_unit":"g","carbohydrates_value":26,"energy":471.2,"energy-kcal":110,"energy-kcal_100g":110,"energy-kcal_unit":"kcal","energy-kcal_value":110,"energy-kj":471.2,"energy-kj_100g":471.2,"energy-kj_modifier":"~","energy-kj_unit":"kJ","energy-kj_value":471.2,"energy_100g":471.2,"energy_modifier":"~","energy_unit":"kJ","energy_value":471.2,"fat":0.1,"fat_100g":0.1,"fat_unit":"g","fat_value":0.1,"proteins":1.5,"proteins_100g":1.5,"proteins_unit":"g","proteins_value":1.5},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Томатный кетчуп","product_name_ru":"Томатный кетчуп"},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "makfa-egg-spaghetti",
+      "expected": { "name": "Спагетти яичные Макфа", "brand": "Макфа", "size": "450 g" },
+      "barcode": "4601780018238",
+      "apiStatus": 1,
+      "response": {"code":"4601780018238","product":{"brands":"Makfa","code":"4601780018238","complete":0,"countries":"Russia","created_t":1749801801,"last_modified_t":1749801945,"nutriments":{"carbohydrates":74.6,"carbohydrates_100g":74.6,"carbohydrates_unit":"g","carbohydrates_value":74.6,"energy":1579,"energy-kcal":372,"energy-kcal_100g":372,"energy-kcal_unit":"kcal","energy-kcal_value":372,"energy-kj":1579,"energy-kj_100g":1579,"energy-kj_unit":"kJ","energy-kj_value":1579,"energy_100g":1579,"energy_unit":"kJ","energy_value":1579,"fat":1.7,"fat_100g":1.7,"fat_unit":"g","fat_value":1.7,"fiber":3.8,"fiber_100g":3.8,"fiber_unit":"g","fiber_value":3.8,"proteins":14.6,"proteins_100g":14.6,"proteins_unit":"g","proteins_value":14.6},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Яичные спагетти","product_name_ru":"Яичные спагетти","quantity":"450","unique_scans_n":1},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "bonduelle-corn",
+      "expected": { "name": "Кукуруза сладкая Bonduelle", "brand": "Bonduelle", "size": "340 g" },
+      "barcode": "3083680002875",
+      "apiStatus": 1,
+      "response": {"code":"3083680002875","product":{"brands":"Bonduelle","code":"3083680002875","complete":0,"countries":"France, Germany, Hungary, Russia, Ukraine","created_t":1422184497,"generic_name":"Vacuum packaged sweet corn in kernels","image_front_url":"https://images.openfoodfacts.org/images/products/308/368/000/2875/front_hu.50.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/308/368/000/2875/front_hu.50.200.jpg","last_modified_t":1787390498,"nutriments":{"added-sugars":2.96368989205103,"added-sugars_100g":2.96368989205103,"added-sugars_modifier":"~","added-sugars_serving":2.96,"added-sugars_unit":"g","added-sugars_value":2.96368989205103,"carbohydrates":20.5,"carbohydrates_100g":20.5,"carbohydrates_serving":20.5,"carbohydrates_unit":"g","carbohydrates_value":20.5,"energy":471,"energy-kcal":78.5964912280702,"energy-kcal_100g":78.5964912280702,"energy-kcal_serving":78.6,"energy-kcal_unit":"kcal","energy-kcal_value":78.5964912280702,"energy-kj":471,"energy-kj_100g":471,"energy-kj_serving":471,"energy-kj_unit":"kJ","energy-kj_value":471,"energy_100g":471,"energy_serving":471,"energy_unit":"kJ","energy_value":471,"fat":1.3,"fat_100g":1.3,"fat_serving":1.3,"fat_unit":"g","fat_value":1.3,"fiber":2.9,"fiber_100g":2.9,"fiber_serving":2.9,"fiber_unit":"g","fiber_value":2.9,"fruits-vegetables-legumes-estimate-from-ingredients_100g":96.2708537782139,"fruits-vegetables-nuts":100,"fruits-vegetables-nuts_100g":100,"fruits-vegetables-nuts_serving":100,"fruits-vegetables-nuts_unit":"%","fruits-vegetables-nuts_value":100,"nova-group":3,"nova-group_100g":3,"nova-group_serving":3,"nova-group_unit":"","nova-group_value":3,"proteins":3,"proteins_100g":3,"proteins_serving":3,"proteins_unit":"g","proteins_value":3,"salt":0.39,"salt_100g":0.39,"salt_serving":0.39,"salt_unit":"g","salt_value":0.39,"saturated-fat":0.2,"saturated-fat_100g":0.2,"saturated-fat_serving":0.2,"saturated-fat_unit":"g","saturated-fat_value":0.2,"sodium":0.156,"sodium_100g":0.156,"sodium_serving":0.156,"sodium_unit":"g","sodium_value":0.156,"sugars":3.2,"sugars_100g":3.2,"sugars_serving":3.2,"sugars_unit":"g","sugars_value":3.2},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","owner":"org-bonduelle-europe-long-life","product_name":"csemegekukorica","product_name_ru":"Sweet Corn","product_quantity":285,"product_quantity_unit":"g","quantity":"285 g","serving_quantity":100,"serving_size":"100 g","unique_scans_n":15},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "lays-chips-salt",
+      "expected": { "name": "Чипсы картофельные Lay's с солью", "brand": "Lay's", "size": "140 g" },
+      "barcode": "4690388016050",
+      "apiStatus": 0,
+      "response": {"code":"4690388016050","status":0,"status_verbose":"product not found"}
+    },
+    {
+      "id": "cocacola-classic-900",
+      "expected": { "name": "Напиток газированный Coca-Cola Classic", "brand": "Coca-Cola", "size": "900 ml" },
+      "barcode": "5449000054227",
+      "apiStatus": 1,
+      "response": {"code":"5449000054227","product":{"brands":"COCA-COLA SERVICES SA/NV, Coca-Cola","code":"5449000054227","complete":0,"countries":"Algeria, Armenia, Austria, Azerbaijan, Belarus, Belgium, Bulgaria, Cameroon, Croatia, France, Germany, Greece, Hungary, Italy, Kazakhstan, Morocco, Pakistan, Poland, Portugal, Réunion, Russia, Senegal, Serbia, Spain, Sweden, Switzerland, Tunisia, Turkey, Ukraine, United Kingdom, United States","created_t":1340100016,"generic_name":"Coca Cola","image_front_url":"https://images.openfoodfacts.org/images/products/544/900/005/4227/front_en.563.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/544/900/005/4227/front_en.563.200.jpg","last_modified_t":1789656926,"nutriments":{"added-sugars":0,"added-sugars_100g":0,"added-sugars_serving":0,"added-sugars_unit":"g","added-sugars_value":0,"carbohydrates":10.6,"carbohydrates_100g":10.6,"carbohydrates_serving":26.5,"carbohydrates_unit":"g","carbohydrates_value":10.6,"energy":180,"energy-kcal":42,"energy-kcal_100g":42,"energy-kcal_serving":105,"energy-kcal_unit":"kcal","energy-kcal_value":42,"energy-kj":180,"energy-kj_100g":180,"energy-kj_serving":450,"energy-kj_unit":"kJ","energy-kj_value":180,"energy_100g":180,"energy_serving":450,"energy_unit":"kJ","energy_value":180,"fat":0,"fat_100g":0,"fat_serving":0,"fat_unit":"g","fat_value":0,"fiber":0,"fiber_100g":0,"fiber_serving":0,"fiber_unit":"g","fiber_value":0,"fruits-vegetables-legumes-estimate-from-ingredients_100g":0,"fruits-vegetables-nuts-estimate-from-ingredients_100g":0,"nova-group":1.6,"nova-group_100g":1.6,"nova-group_serving":1.6,"nova-group_unit":"","nova-group_value":1.6,"proteins":0,"proteins_100g":0,"proteins_serving":0,"proteins_unit":"g","proteins_value":0,"salt":0,"salt_100g":0,"salt_serving":0,"salt_unit":"g","salt_value":0,"saturated-fat":0,"saturated-fat_100g":0,"saturated-fat_serving":0,"saturated-fat_unit":"g","saturated-fat_value":0,"sodium":0,"sodium_100g":0,"sodium_serving":0,"sodium_unit":"g","sodium_value":0,"sugars":10.6,"sugars_100g":10.6,"sugars_serving":26.5,"sugars_unit":"g","sugars_value":10.6},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Coca-Cola Original Taste","product_quantity":1000,"product_quantity_unit":"ml","quantity":"1 L","serving_quantity":250,"serving_size":"250 ml","unique_scans_n":1188},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "pepsi-2l",
+      "expected": { "name": "Напиток газированный Pepsi", "brand": "Pepsi", "size": "2 l" },
+      "barcode": "4600494103063",
+      "apiStatus": 0,
+      "response": {"code":"4600494103063","status":0,"status_verbose":"product not found"}
+    },
+    {
+      "id": "dobry-orange-nectar-2l",
+      "expected": { "name": "Нектар Добрый апельсин с мякотью", "brand": "Добрый", "size": "2 l" },
+      "barcode": "4607042438776",
+      "apiStatus": 1,
+      "response": {"code":"4607042438776","product":{"brands":"Добрый","code":"4607042438776","complete":0,"countries":"Russia","created_t":1474048737,"generic_name":"Нектар Добрый апельсиновый, 2л","image_front_url":"https://images.openfoodfacts.org/images/products/460/704/243/8776/front_ru.31.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/704/243/8776/front_ru.31.200.jpg","last_modified_t":1691854300,"nutriments":{"carbohydrates":10.5,"carbohydrates_100g":10.5,"carbohydrates_serving":26.2,"carbohydrates_unit":"g","carbohydrates_value":10.5,"energy":179,"energy-kcal":42,"energy-kcal_100g":42,"energy-kcal_serving":105,"energy-kcal_unit":"kcal","energy-kcal_value":42,"energy-kj":179,"energy-kj_100g":179,"energy-kj_serving":448,"energy-kj_unit":"kJ","energy-kj_value":179,"energy_100g":179,"energy_serving":448,"energy_unit":"kJ","energy_value":179,"fat":0,"fat_100g":0,"fat_serving":0,"fat_unit":"g","fat_value":0,"fiber":0,"fiber_100g":0,"fiber_serving":0,"fiber_unit":"g","fiber_value":0,"nova-group":3,"nova-group_100g":3,"nova-group_serving":3,"nova-group_unit":"","nova-group_value":3,"potassium":0.0838,"potassium_100g":0.0838,"potassium_serving":0.209,"potassium_unit":"g","potassium_value":0.0838,"proteins":0,"proteins_100g":0,"proteins_serving":0,"proteins_unit":"g","proteins_value":0,"salt":0,"salt_100g":0,"salt_serving":0,"salt_unit":"g","salt_value":0,"sodium":0,"sodium_100g":0,"sodium_serving":0,"sodium_unit":"g","sodium_value":0},"nutrition_data":"on","nutrition_data_per":"100ml","nutrition_data_prepared_per":"100g","product_name":"Апельсининовый нектар","product_name_ru":"Апельсининовый нектар","product_quantity":2000,"product_quantity_unit":"ml","quantity":"2 л","serving_quantity":250,"serving_size":"250 мл","unique_scans_n":1},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "barilla-spaghetti-5",
+      "expected": { "name": "Спагетти Barilla №5", "brand": "Barilla", "size": "450 g" },
+      "barcode": "8076809576093",
+      "apiStatus": 1,
+      "response": {"code":"8076809576093","product":{"brands":"Barilla","code":"8076809576093","complete":0,"countries":"Georgia","created_t":1622320036,"image_front_url":"https://images.openfoodfacts.org/images/products/807/680/957/6093/front_ru.19.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/807/680/957/6093/front_ru.19.200.jpg","last_modified_t":1775088070,"nutriments":{"added-sugars":0,"added-sugars_100g":0,"added-sugars_modifier":"~","added-sugars_unit":"g","added-sugars_value":0,"carbohydrates":69.7,"carbohydrates_100g":69.7,"carbohydrates_unit":"g","carbohydrates_value":69.7,"energy":1521,"energy-kcal":359,"energy-kcal_100g":359,"energy-kcal_unit":"kcal","energy-kcal_value":359,"energy-kj":1521,"energy-kj_100g":1521,"energy-kj_unit":"kJ","energy-kj_value":1521,"energy_100g":1521,"energy_unit":"kJ","energy_value":1521,"fat":2,"fat_100g":2,"fat_unit":"g","fat_value":2,"fiber":3,"fiber_100g":3,"fiber_unit":"g","fiber_value":3,"fruits-vegetables-legumes-estimate-from-ingredients_100g":0,"fruits-vegetables-nuts-estimate-from-ingredients_100g":0,"nova-group":1,"nova-group_100g":1,"nova-group_serving":1,"nova-group_unit":"","nova-group_value":1,"proteins":14,"proteins_100g":14,"proteins_unit":"g","proteins_value":14,"salt":0.013,"salt_100g":0.013,"salt_unit":"g","salt_value":0.013,"saturated-fat":0.3,"saturated-fat_100g":0.3,"saturated-fat_unit":"g","saturated-fat_value":0.3,"sodium":0.0052,"sodium_100g":0.0052,"sodium_unit":"g","sodium_value":0.0052},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Spaghetti","product_quantity":450,"product_quantity_unit":"g","quantity":"450 gr","unique_scans_n":10},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "alyonka-chocolate",
+      "expected": { "name": "Шоколад молочный порционный «Алёнка» (Красный Октябрь)", "brand": "Алёнка", "size": "100 g" },
+      "barcode": "4600823172012",
+      "apiStatus": 1,
+      "response": {"code":"4600823172012","product":{"brands":"Алёнка","code":"4600823172012","complete":0,"countries":"Russia","created_t":1497190550,"image_front_url":"https://images.openfoodfacts.org/images/products/460/082/317/2012/front_en.7.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/082/317/2012/front_en.7.200.jpg","last_modified_t":1740461023,"product_name":"Порционный молочный шоколад","product_name_ru":"Порционный молочный шоколад","product_quantity":"100","quantity":"100 г","unique_scans_n":1},"status":1,"status_verbose":"product found"}
+    },
+    {
+      "id": "uvelka-buckwheat",
+      "expected": { "name": "Крупа гречневая ядрица быстроразваривающаяся Экстра Увелка", "brand": "Увелка", "size": "800 g" },
+      "barcode": "4607016240893",
+      "apiStatus": 1,
+      "response": {"code":"4607016240893","product":{"brands":"Увелка","code":"4607016240893","complete":0,"countries":"France, Germany, Russia","created_t":1499867701,"generic_name":"Крупа гречневая ядрица «Экстра»","image_front_url":"https://images.openfoodfacts.org/images/products/460/701/624/0893/front_en.32.400.jpg","image_small_url":"https://images.openfoodfacts.org/images/products/460/701/624/0893/front_en.32.200.jpg","last_modified_t":1787110947,"nutriments":{"added-sugars":0,"added-sugars_100g":0,"added-sugars_modifier":"~","added-sugars_serving":0,"added-sugars_unit":"g","added-sugars_value":0,"carbohydrates":61,"carbohydrates_100g":61,"carbohydrates_serving":61,"carbohydrates_unit":"g","carbohydrates_value":61,"energy":1499,"energy-kcal":340,"energy-kcal_100g":340,"energy-kcal_serving":340,"energy-kcal_unit":"kcal","energy-kcal_value":340,"energy-kj":1499,"energy-kj_100g":1499,"energy-kj_serving":1500,"energy-kj_unit":"kJ","energy-kj_value":1499,"energy_100g":1499,"energy_serving":1500,"energy_unit":"kJ","energy_value":1499,"fat":2.5,"fat_100g":2.5,"fat_serving":2.5,"fat_unit":"g","fat_value":2.5,"fruits-vegetables-legumes-estimate-from-ingredients_100g":0,"fruits-vegetables-nuts-estimate-from-ingredients_100g":0,"proteins":13,"proteins_100g":13,"proteins_serving":13,"proteins_unit":"g","proteins_value":13,"salt":0,"salt_100g":0,"salt_serving":0,"salt_unit":"g","salt_value":0,"saturated-fat":0.5,"saturated-fat_100g":0.5,"saturated-fat_serving":0.5,"saturated-fat_unit":"g","saturated-fat_value":0.5,"sodium":0,"sodium_100g":0,"sodium_serving":0,"sodium_unit":"g","sodium_value":0,"sugars":0,"sugars_100g":0,"sugars_serving":0,"sugars_unit":"g","sugars_value":0},"nutrition_data":"on","nutrition_data_per":"100g","nutrition_data_prepared_per":"100g","product_name":"Buckwheat","product_name_ru":"Buckwheat","product_quantity":800,"product_quantity_unit":"g","quantity":"800 г","serving_quantity":100,"serving_size":"100 g","unique_scans_n":5},"status":1,"status_verbose":"product found"}
+    }
+  ]
+}

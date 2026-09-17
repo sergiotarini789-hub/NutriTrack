@@ -1,0 +1,380 @@
+{
+  "meta": {
+    "stage": "7A — real food database source probe",
+    "purpose": "Test coverage of Open Food Facts (and FatSecret where credentials exist) for real packaged products sold in the Russian market. NOT part of the NutriTrack application.",
+    "createdAt": "2026-09-17",
+    "methodology": [
+      "Products are common packaged SKUs from Russian supermarkets, biased toward Russian brands (Danone/Простоквашино, ВБД/Домик в деревне, ЭкоНива, Мираторг, Агуша, Чудо, Макфа, Добрый, Увелка, Красный Октябрь) plus international brands sold in Russia (Heinz RU-made and imported, Bonduelle RU-made, Barilla, Lay's RU-made, Coca-Cola, Pepsi).",
+      "Every barcode was taken from a public source INDEPENDENT of Open Food Facts (Russian retailer product pages, the Роскачество product registry, or a barcode catalog only as a last resort). Open Food Facts pages were never used to build this dataset, so coverage numbers are not circular.",
+      "Every barcode passed EAN-13 check-digit validation before being included.",
+      "No barcodes or products were invented; SKUs whose package size or barcode could not be verified were excluded (see meta.excluded)."
+    ],
+    "verificationSourceTiers": {
+      "retailer": "official retailer product page (irmag.ru, vodovoz.ru, alania-market.ru, detmir.ru, barista-ltd.ru, tuttofood.pro, shop.sudzhuk.ru, mosprivoz.ru, parhato.ru, green-dostavka.by, lamberg.store, magnit.ru, dixy.ru)",
+      "quality-agency": "Роскачество product registry (rskrf.ru) — state-affiliated quality agency publishing label data and barcodes",
+      "catalog": "barcode catalog (ean13.info, goodsmatrix.ru, barcode-list.ru) — used only when no better source was available; treated as the weakest tier"
+    },
+    "excluded": [
+      {
+        "product": "Творог 5% «ВкусВилл»",
+        "barcode": "4607035286995",
+        "reason": "Barcode verified via rskrf.ru, but the exact package size of the tested SKU could not be confirmed from a public source, so exact SKU verification was impossible — excluded per stage rules."
+      },
+      {
+        "product": "Кукуруза Bonduelle 340 г (Дикси listing)",
+        "reason": "Дикси lists a Hungarian-imported variant without a barcode; the included Bonduelle SKU (3083680002875) was instead verified via alania-market.ru + two catalogs."
+      }
+    ]
+  },
+  "products": [
+    {
+      "id": "prostokvashino-milk-25",
+      "name": "Молоко Простоквашино пастеризованное 2,5%",
+      "brand": "Простоквашино",
+      "manufacturer": "Юнимилк (Danone)",
+      "barcode": "4607053473544",
+      "packageSize": 930,
+      "packageUnit": "ml",
+      "verificationSource": "IRMAG retailer product page (Штрихкод 4607053473544, производитель Юнимилк, Россия)",
+      "verificationUrl": "https://irmag.ru/cat/i342707/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [
+        "https://barcode-list.ru/barcode/RU/barcode-4607053473544/Поиск.htm (user-submitted names: «МОЛОКО ПРОСТОКВАШИНО 2,5% 930МЛ ПЛ/БУТ»)"
+      ],
+      "referenceNutrition": null,
+      "notes": "ПЭТ бутылка 930 мл."
+    },
+    {
+      "id": "prostokvashino-yogurt-strawberry",
+      "name": "Йогурт Простоквашино Клубника 2,5%",
+      "brand": "Простоквашино",
+      "manufacturer": "Юнимилк (Danone)",
+      "barcode": "4607161626993",
+      "packageSize": 480,
+      "packageUnit": "g",
+      "verificationSource": "IRMAG retailer product page (Штрихкод 4607161626993)",
+      "verificationUrl": "https://irmag.ru/cat/i272478/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Пакет 480 г."
+    },
+    {
+      "id": "domik-v-derevne-milk-25",
+      "name": "Молоко Домик в деревне ультрапастеризованное 2,5%",
+      "brand": "Домик в деревне",
+      "manufacturer": "Вимм-Билль-Данн (PepsiCo)",
+      "barcode": "4690228007842",
+      "packageSize": 950,
+      "packageUnit": "g",
+      "verificationSource": "Водовъ.RU retailer product page (Штрихкод 4690228007842)",
+      "verificationUrl": "https://vodovoz.ru/catalog/moloko/45038/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Тетрапак 950 г."
+    },
+    {
+      "id": "ekoniva-milk-25",
+      "name": "Молоко ЭкоНива ультрапастеризованное 2,5% БЗМЖ",
+      "brand": "ЭкоНива",
+      "manufacturer": "ЭкоНива",
+      "barcode": "4680017920629",
+      "packageSize": 1000,
+      "packageUnit": "ml",
+      "verificationSource": "barista-ltd.ru retailer product page (Штрих-код товара: 4680017920629, тетрапак 1000 мл)",
+      "verificationUrl": "https://www.barista-ltd.ru/magazin/paster-milk-ekoniva-2-5-tetrapack-1000-ml.html",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Тетрапак 1 л."
+    },
+    {
+      "id": "ekoniva-milk-32",
+      "name": "Молоко ЭкоНива питьевое ультрапастеризованное 3,2%",
+      "brand": "ЭкоНива",
+      "manufacturer": "ЭкоНива",
+      "barcode": "4680017920605",
+      "packageSize": 1000,
+      "packageUnit": "ml",
+      "verificationSource": "Роскачество product registry (Штрихкод 4680017920605, объём 1000 мл)",
+      "verificationUrl": "https://rskrf.ru/goods/moloko-pitevoe-ultrapasterizovannoe-massovaya-dolya-zhira-3-2-ekoniva/",
+      "verificationTier": "quality-agency",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Тетрапак 1 л."
+    },
+    {
+      "id": "activia-yogurt-len-chernika",
+      "name": "Йогурт питьевой Активиа Лён-Черника-Злаки 2,1%",
+      "brand": "Активиа",
+      "manufacturer": "Danone",
+      "barcode": "4600605026762",
+      "packageSize": 260,
+      "packageUnit": "g",
+      "verificationSource": "alania-market.ru retailer product page (Штрихкод 4600605026762, Бренд: Danone)",
+      "verificationUrl": "https://alania-market.ru/biojogurt-aktiviya-len-chernika-zlaki-2-1-260-gr",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": {
+        "kcal": 74,
+        "protein": 3,
+        "fat": 2.1,
+        "carbs": 10.8,
+        "per": "100g",
+        "source": "alania-market.ru product page (label data)"
+      },
+      "notes": "Бутылка 260 г."
+    },
+    {
+      "id": "chudo-yogurt-peach-apricot",
+      "name": "Йогурт питьевой Чудо Персик-абрикос 1,9%",
+      "brand": "Чудо",
+      "manufacturer": "Вимм-Билль-Данн (PepsiCo)",
+      "barcode": "4690228106873",
+      "packageSize": 260,
+      "packageUnit": "g",
+      "verificationSource": "IRMAG retailer product page (Штрихкод 4690228106873, производитель ВБД)",
+      "verificationUrl": "https://irmag.ru/cat/i355595/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Бутылка 260 г."
+    },
+    {
+      "id": "agusha-curd-classic",
+      "name": "Творог классический Агуша 4,5%",
+      "brand": "Агуша",
+      "manufacturer": "Вимм-Билль-Данн (PepsiCo)",
+      "barcode": "4602541000592",
+      "packageSize": 50,
+      "packageUnit": "g",
+      "verificationSource": "Детский мир retailer product page (Артикул/EAN: 4602541000592, 50 г, Россия)",
+      "verificationUrl": "https://www.detmir.ru/product/index/id/1771161/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Стеклянная баночка 50 г, детское питание (с 6 месяцев)."
+    },
+    {
+      "id": "miratorg-nuggets",
+      "name": "Наггетсы куриные классические Мираторг (замороженные)",
+      "brand": "Мираторг",
+      "manufacturer": "Брянская мясная компания / Мираторг Запад",
+      "barcode": "4607177073095",
+      "packageSize": 300,
+      "packageUnit": "g",
+      "verificationSource": "shop.sudzhuk.ru retailer product page (Штрихкод 4607177073095) + mosprivoz.ru retailer product page (ШтрихКод 4607177073095, 0.3 кг)",
+      "verificationUrl": "https://shop.sudzhuk.ru/index.php?route=product/product&product_id=620",
+      "verificationTier": "retailer",
+      "corroboratingSources": [
+        "https://mosprivoz.ru/catalog/products/naggetsy_kurinye_miratorg_klassicheskie_300_gr/",
+        "https://libt.ru/barcode/naggetsy-miratorg/"
+      ],
+      "referenceNutrition": null,
+      "notes": "Картонная коробка 300 г."
+    },
+    {
+      "id": "heinz-ketchup-550",
+      "name": "Кетчуп Heinz Томатный (дой-пак)",
+      "brand": "Heinz",
+      "manufacturer": "ООО «Петропродукт-Отрадное» (Россия)",
+      "barcode": "4601674084875",
+      "packageSize": 550,
+      "packageUnit": "g",
+      "verificationSource": "IRMAG retailer product page (Штрихкод 4601674084875, Россия) + green-dostavka.by (Штрихкод 4601674084875, ООО «Петропродукт-Отрадное»)",
+      "verificationUrl": "https://irmag.ru/cat/i343500/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [
+        "https://green-dostavka.by/product/ketchup-hajnc-tomatnyj-1506827/"
+      ],
+      "referenceNutrition": {
+        "kcal": 110,
+        "protein": 1,
+        "fat": 0,
+        "carbs": 25,
+        "per": "100g",
+        "source": "irmag.ru product page (label data)"
+      },
+      "notes": "Дой-пак 550 г, российское производство."
+    },
+    {
+      "id": "heinz-ketchup-460",
+      "name": "Кетчуп Heinz Томатный (пластиковая бутылка)",
+      "brand": "Heinz",
+      "manufacturer": "Heinz (импорт, Нидерланды)",
+      "barcode": "4601674084288",
+      "packageSize": 460,
+      "packageUnit": "g",
+      "verificationSource": "IRMAG retailer product page (Штрихкод 4601674084288, Нидерланды)",
+      "verificationUrl": "https://irmag.ru/cat/i343455/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": {
+        "kcal": 110,
+        "protein": 1,
+        "fat": 0,
+        "carbs": 25,
+        "per": "100g",
+        "source": "irmag.ru product page (label data)"
+      },
+      "notes": "Бутылка 460 г, импортный вариант того же соуса."
+    },
+    {
+      "id": "makfa-egg-spaghetti",
+      "name": "Спагетти яичные Макфа",
+      "brand": "Макфа",
+      "manufacturer": "Макфа",
+      "barcode": "4601780018238",
+      "packageSize": 450,
+      "packageUnit": "g",
+      "verificationSource": "parhato.ru retailer product page (артикул/SKU = 4601780018238)",
+      "verificationUrl": "https://parhato.ru/product/макароны-makfa-спагетти-яичные-450г/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Мягкая упаковка 450 г."
+    },
+    {
+      "id": "bonduelle-corn",
+      "name": "Кукуруза сладкая Bonduelle",
+      "brand": "Bonduelle",
+      "manufacturer": "Бондюэль-Кубань",
+      "barcode": "3083680002875",
+      "packageSize": 340,
+      "packageUnit": "g",
+      "verificationSource": "alania-market.ru retailer product page (Штрихкод 3083680002875)",
+      "verificationUrl": "https://alania-market.ru/kukuruza-sladkaya-bonduelle-classicue-340-gr",
+      "verificationTier": "retailer",
+      "corroboratingSources": [
+        "http://goodsmatrix.ru/goods-analogue/3083681083361.html (catalog, sibling SKUs)",
+        "https://barcode-list.ru/barcode/RU/barcode-3083680002875/Поиск.htm"
+      ],
+      "referenceNutrition": {
+        "kcal": 58,
+        "protein": 2.8,
+        "fat": 0.6,
+        "carbs": 9.9,
+        "per": "100g",
+        "source": "dixy.ru product page «Кукуруза Bonduelle сладкая 340г» (note: Дикси listing describes a Hungarian-import variant; recipe family may differ)"
+      },
+      "notes": "Жестяная банка 340 г; 308… — французский GS1-префикс Bonduelle, производство «Бондюэль-Кубань»."
+    },
+    {
+      "id": "lays-chips-salt",
+      "name": "Чипсы картофельные Lay's с солью",
+      "brand": "Lay's",
+      "manufacturer": "PepsiCo (Россия)",
+      "barcode": "4690388016050",
+      "packageSize": 140,
+      "packageUnit": "g",
+      "verificationSource": "Водовъ.RU retailer product page (Штрихкод 4690388016050, страна-производитель Россия)",
+      "verificationUrl": "https://vodovoz.ru/catalog/chipsy_i_sukhariki/78029/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Мягкая упаковка 140 г."
+    },
+    {
+      "id": "cocacola-classic-900",
+      "name": "Напиток газированный Coca-Cola Classic",
+      "brand": "Coca-Cola",
+      "manufacturer": "Кока-Кола ЭйчБиСи Евразия (импорт)",
+      "barcode": "5449000054227",
+      "packageSize": 900,
+      "packageUnit": "ml",
+      "verificationSource": "IRMAG retailer product page (Штрихкод 5449000054227, 900 мл)",
+      "verificationUrl": "https://irmag.ru/cat/i289545/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [
+        "https://listex.info/uk/product/napitok-cocacola-silnogaz-pet-1l (same EAN documented as Coca-Cola HBC 1 л ПЭТ in Ukraine)"
+      ],
+      "referenceNutrition": null,
+      "notes": "После ухода Coca-Cola с рынка РФ оригинальный продукт продаётся как импорт; тот же EAN используется HBC для бутылок 1 л / 900 мл в разных странах — возможен вариант размера при совпадении товара."
+    },
+    {
+      "id": "pepsi-2l",
+      "name": "Напиток газированный Pepsi",
+      "brand": "Pepsi",
+      "manufacturer": "PepsiCo Holdings (Россия)",
+      "barcode": "4600494103063",
+      "packageSize": 2,
+      "packageUnit": "l",
+      "verificationSource": "Водовъ.RU retailer product page (Штрихкод 4600494103063, 2 л ПЭТ)",
+      "verificationUrl": "https://vodovoz.ru/catalog/limonad_pepsi-cola/15997/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Бутылка 2 л."
+    },
+    {
+      "id": "dobry-orange-nectar-2l",
+      "name": "Нектар Добрый апельсин с мякотью",
+      "brand": "Добрый",
+      "manufacturer": "Multon Partners (PepsiCo)",
+      "barcode": "4607042438776",
+      "packageSize": 2,
+      "packageUnit": "l",
+      "verificationSource": "Водовъ.RU retailer product page (Штрихкод 4607042438776, Россия)",
+      "verificationUrl": "https://vodovoz.ru/catalog/sok_dobryy/87783/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "ПЭТ 2 л."
+    },
+    {
+      "id": "barilla-spaghetti-5",
+      "name": "Спагетти Barilla №5",
+      "brand": "Barilla",
+      "manufacturer": "Barilla",
+      "barcode": "8076809576093",
+      "packageSize": 450,
+      "packageUnit": "g",
+      "verificationSource": "tuttofood.pro B2B retailer product page (Штрихкод 8076809576093, 0.45 кг)",
+      "verificationUrl": "https://tuttofood.pro/catalog/bakaleya/makaronnye_izdeliya/makaronnye_izdeliya_1/makaronnye_izdeliya_barilla_5_spaghetti_spagetti_450g_24/",
+      "verificationTier": "retailer",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Итальянский EAN (807680…), продаётся в российских магазинах."
+    },
+    {
+      "id": "alyonka-chocolate",
+      "name": "Шоколад молочный порционный «Алёнка» (Красный Октябрь)",
+      "brand": "Алёнка",
+      "manufacturer": "Красный Октябрь",
+      "barcode": "4600823172012",
+      "packageSize": 100,
+      "packageUnit": "g",
+      "verificationSource": "ean13.info barcode catalog (штрих-код 4600823172012, 100 г) — СЛАБЕЙШИЙ источник в наборе (каталог штрихкодов, а не ритейлер)",
+      "verificationUrl": "https://ean13.info/4600823172012.htm",
+      "verificationTier": "catalog",
+      "corroboratingSources": [],
+      "referenceNutrition": null,
+      "notes": "Классическая плитка 100 г; единственный продукт набора, верифицированный только каталогом штрихкодов."
+    },
+    {
+      "id": "uvelka-buckwheat",
+      "name": "Крупа гречневая ядрица быстроразваривающаяся Экстра Увелка",
+      "brand": "Увелка",
+      "manufacturer": "Увелка",
+      "barcode": "4607016240893",
+      "packageSize": 800,
+      "packageUnit": "g",
+      "verificationSource": "alania-market.ru retailer product page (Штрихкод 4607016240893) + lamberg.store (EAN: 4607016240893)",
+      "verificationUrl": "https://alania-market.ru/grechka-uvelka-ekstra-800-gr",
+      "verificationTier": "retailer",
+      "corroboratingSources": [
+        "https://lamberg.store/product/buchweizen-uvelka-800-g/"
+      ],
+      "referenceNutrition": {
+        "kcal": 360,
+        "protein": 13,
+        "fat": 2,
+        "carbs": 72,
+        "per": "100g",
+        "source": "alania-market.ru product page (lamberg.store states 363 ккал / 13 б / 2,5 ж / 72 у — незначительное расхождение между источниками)"
+      },
+      "notes": "Мягкая упаковка 800 г."
+    }
+  ]
+}
