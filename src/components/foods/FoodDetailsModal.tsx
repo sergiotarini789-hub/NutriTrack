@@ -8,7 +8,7 @@ import { Toast } from "@/components/ui/Toast";
 import { useDiary } from "@/lib/diary";
 import { categoryIcon, getCategory } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
-import { baseUnitLabel, formatServing } from "@/lib/nutrition";
+import { baseUnitLabel, formatServing, sourceLabelOf } from "@/lib/nutrition";
 import type { FoodItem } from "@/lib/types";
 
 interface FoodDetailsModalProps {
@@ -72,7 +72,7 @@ export function FoodDetailsModal({
 function FoodDetails({ food }: { food: FoodItem }) {
   const Icon = categoryIcon(food.category);
   const category = getCategory(food.category);
-  const isUser = food.sourceType === "user";
+  const isUser = food.type === "user";
   const extraUnits = food.units.filter(
     (unit) => unit.key !== food.baseUnit,
   );
@@ -167,8 +167,10 @@ function FoodDetails({ food }: { food: FoodItem }) {
       )}
 
       <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
-        {food.sourceName && <>Источник: {food.sourceName}. </>}
-        Значения носят справочный характер.
+        Источник: {sourceLabelOf(food)}.
+        {food.brand && <> Бренд: {food.brand}.</>}
+        {food.barcode && <> Штрихкод: {food.barcode}.</>}
+        <> Значения носят справочный характер.</>
       </p>
     </div>
   );

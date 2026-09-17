@@ -1,19 +1,20 @@
 import { DEFAULT_PROFILE, DEFAULT_TARGETS } from "./app-data";
 import { G_UNIT, ML_UNIT } from "./food-data";
+import { normalizeBarcode } from "./barcode";
 import type {
   ActivityLevel,
   BaseUnit,
   FoodCategoryId,
   FoodEntry,
-  FoodItem,
+  FoodProductType,
   FoodServing,
   FoodUnit,
   Gender,
   Goal,
   MealType,
   NutritionTargets,
-  SourceType,
   UserProfile,
+  UserProduct,
 } from "./types";
 
 /**
@@ -52,12 +53,7 @@ const GOALS: readonly Goal[] = ["lose", "maintain", "gain"];
 
 const BASE_UNITS: readonly BaseUnit[] = ["g", "ml"];
 
-const SOURCE_TYPES: readonly SourceType[] = [
-  "generic",
-  "manufacturer",
-  "database",
-  "user",
-];
+const FOOD_TYPES: readonly FoodProductType[] = ["generic", "branded", "user"];
 
 const USER_CATEGORY_IDS: readonly FoodCategoryId[] = [
   "user",
@@ -137,6 +133,8 @@ function isValidEntry(value: unknown): value is FoodEntry {
 /**
  * Loads diary entries. Entries saved before serving units existed have no
  * `unit` field — they are migrated to `unit: "g"` (amounts were grams).
+ * Optional `foodType`/`createdAt` fields (Stage 6) are kept when valid
+ * and dropped otherwise; the migration is idempotent.
  */
 export function loadEntries(): FoodEntry[] {
   const raw = readJson<unknown>(STORAGE_KEYS.entries);
@@ -144,6 +142,15 @@ export function loadEntries(): FoodEntry[] {
   return raw.filter(isValidEntry).map((entry) => ({
     ...entry,
     unit: typeof entry.unit === "string" && entry.unit ? entry.unit : "g",
+    foodType:
+      typeof entry.foodType === "string" &&
+      FOOD_TYPES.includes(entry.foodType as FoodProductType)
+        ? (entry.foodType as FoodProductType)
+        : undefined,
+    createdAt:
+      typeof entry.createdAt === "string" && entry.createdAt
+        ? entry.createdAt
+        : undefined,
   }));
 }
 
@@ -180,7 +187,12 @@ function parseServing(value: unknown): FoodServing | null {
   return { amount, unitKey: value.unitKey };
 }
 
-function parseUserFood(value: unknown): FoodItem | null {
+/**
+ * Parses a stored user product. Tolerates the pre-Stage-6 format (no
+ * `type` discriminator / brand / barcode fields): the discriminator is
+ * always injected, so re-saving produces the new format — idempotently.
+ */
+function parseUserProduct(value: unknown): UserProduct | null {
   if (!isRecord(value)) return null;
   if (typeof value.id !== "string" || !value.id) return null;
   if (typeof value.name !== "string" || !value.name.trim()) return null;
@@ -214,6 +226,8 @@ function parseUserFood(value: unknown): FoodItem | null {
       : "user";
 
   return {
+    // Discriminator (injected for old records; user products stay user).
+    type: "user",
     id: value.id,
     name: value.name.trim(),
     category,
@@ -228,25 +242,49 @@ function parseUserFood(value: unknown): FoodItem | null {
     units,
     servingOptions,
     defaultServing,
-    sourceType:
-      typeof value.sourceType === "string" &&
-      SOURCE_TYPES.includes(value.sourceType as SourceType)
-        ? (value.sourceType as SourceType)
-        : "user",
+    sourceType: "user",
     sourceName: typeof value.sourceName === "string" ? value.sourceName : undefined,
     isBranded: value.isBranded === true,
+    brand:
+      typeof value.brand === "string" && value.brand.trim()
+        ? value.brand.trim().slice(0, 80)
+        : undefined,
+    manufacturer:
+      typeof value.manufacturer === "string" && value.manufacturer.trim()
+        ? value.manufacturer.trim().slice(0, 80)
+        : undefined,
+    barcode: normalizeBarcode(
+      typeof value.barcode === "string" ? value.barcode : undefined,
+    ),
+    ingredients:
+      typeof value.ingredients === "string" && value.ingredients.trim()
+        ? value.ingredients.trim().slice(0, 500)
+        : undefined,
+    packageSize: positiveNumber(value.packageSize) ?? undefined,
+    packageUnit:
+      typeof value.packageUnit === "string" && value.packageUnit.trim()
+        ? value.packageUnit.trim()
+        : undefined,
+    createdAt:
+      typeof value.createdAt === "string" && value.createdAt
+        ? value.createdAt
+        : undefined,
+    updatedAt:
+      typeof value.updatedAt === "string" && value.updatedAt
+        ? value.updatedAt
+        : undefined,
   };
 }
 
-export function loadUserFoods(): FoodItem[] {
+export function loadUserFoods(): UserProduct[] {
   const raw = readJson<unknown>(STORAGE_KEYS.userFoods);
   if (!Array.isArray(raw)) return [];
   return raw
-    .map(parseUserFood)
-    .filter((item): item is FoodItem => item !== null);
+    .map(parseUserProduct)
+    .filter((item): item is UserProduct => item !== null);
 }
 
-export function saveUserFoods(items: FoodItem[]): void {
+export function saveUserFoods(items: UserProduct[]): void {
   writeJson(STORAGE_KEYS.userFoods, items);
 }
 

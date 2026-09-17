@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { useDiary } from "@/lib/diary";
 import { parseAmountInput } from "@/lib/nutrition";
+import { normalizeBarcode } from "@/lib/barcode";
 import type { FoodItem } from "@/lib/types";
 
 interface CustomFoodFormProps {
@@ -26,6 +27,8 @@ export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
   const [portion, setPortion] = useState("");
+  const [brand, setBrand] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [isBranded, setIsBranded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState(false);
@@ -54,6 +57,9 @@ export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
         next.portion = "Введите число больше 0";
       }
     }
+    if (barcode.trim() !== "" && !normalizeBarcode(barcode)) {
+      next.barcode = "Штрихкод должен состоять из цифр";
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -71,6 +77,8 @@ export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
       baseUnit,
       portionSize: parseAmountInput(portion),
       isBranded,
+      brand,
+      barcode,
     });
 
     // Reset the form.
@@ -81,6 +89,8 @@ export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
     setFat("");
     setCarbs("");
     setPortion("");
+    setBrand("");
+    setBarcode("");
     setIsBranded(false);
     setErrors({});
     setTouched(false);
@@ -178,6 +188,23 @@ export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
         value={portion}
         onChange={(event) => setPortion(event.target.value)}
         error={touched ? errors.portion ?? null : null}
+      />
+
+      <Input
+        label="Бренд (необязательно)"
+        placeholder="Например, Домик в деревне"
+        value={brand}
+        maxLength={80}
+        onChange={(event) => setBrand(event.target.value)}
+      />
+
+      <Input
+        label="Штрихкод (необязательно)"
+        placeholder="Например, 4601234567891"
+        value={barcode}
+        inputMode="numeric"
+        onChange={(event) => setBarcode(event.target.value)}
+        error={touched ? errors.barcode ?? null : null}
       />
 
       <label className="flex cursor-pointer items-center gap-2.5 select-none">

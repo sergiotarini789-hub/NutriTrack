@@ -21,9 +21,10 @@ import {
 import type {
   FoodCategory,
   FoodCategoryId,
-  FoodItem,
+  FoodProduct,
   FoodServing,
   FoodUnit,
+  GenericFood,
 } from "./types";
 
 /* ------------------------------------------------------------------ */
@@ -119,9 +120,10 @@ function food(
   category: FoodCategoryId,
   macros: Macros,
   seed: FoodSeed = {},
-): FoodItem {
+): GenericFood {
   const baseUnitKey = seed.ml ? "ml" : "g";
   return {
+    type: "generic",
     id,
     name,
     category,
@@ -147,7 +149,8 @@ function food(
 /* Food database (reference values per 100 g / 100 ml)                 */
 /* ------------------------------------------------------------------ */
 
-export const foods: FoodItem[] = [
+/** Built-in reference foods — all generic (no manufacturer data). */
+export const foods: GenericFood[] = [
   /* --- Крупы и зерновые --- */
   food("buckwheat", "Гречка (сухая)", "cereals", [330, 12.6, 3.3, 62.1], { alias: ["греча", "гречка"] }),
   food("buckwheat-cooked", "Гречка (варёная)", "cereals", [110, 4.2, 1.1, 21.3], { alias: ["гречка"] }),
@@ -844,7 +847,7 @@ export const foods: FoodItem[] = [
 const foodById = new Map(foods.map((item) => [item.id, item]));
 
 /** Looks up a built-in food. User foods are searched separately. */
-export function getFoodById(id: string): FoodItem | undefined {
+export function getFoodById(id: string): GenericFood | undefined {
   return foodById.get(id);
 }
 
@@ -859,10 +862,10 @@ export const ALL_CATEGORY = "all" as const;
  * product name (prefix matches rank higher), aliases and category name.
  */
 export function searchFoods(
-  list: FoodItem[],
+  list: FoodProduct[],
   query: string,
   categoryId: string = ALL_CATEGORY,
-): FoodItem[] {
+): FoodProduct[] {
   const byCategory =
     categoryId === ALL_CATEGORY
       ? list
@@ -871,13 +874,14 @@ export function searchFoods(
   const normalized = query.trim().toLowerCase();
   if (!normalized) return byCategory;
 
-  const scored: { item: FoodItem; score: number }[] = [];
+  const scored: { item: FoodProduct; score: number }[] = [];
   for (const item of byCategory) {
     const name = item.name.toLowerCase();
+    const brand = item.brand?.toLowerCase() ?? "";
     let score: number | null = null;
     if (name.startsWith(normalized)) {
       score = 0;
-    } else if (name.includes(normalized)) {
+    } else if (name.includes(normalized) || brand.includes(normalized)) {
       score = 1;
     } else if (
       item.aliases.some((alias) => alias.toLowerCase().includes(normalized))

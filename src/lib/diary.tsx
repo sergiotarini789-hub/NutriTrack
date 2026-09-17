@@ -11,7 +11,7 @@ import {
 } from "react";
 import { DEFAULT_PROFILE, DEFAULT_TARGETS } from "./app-data";
 import { todayKey } from "./dates";
-import { G_UNIT, ML_UNIT, foods as builtInFoods } from "./food-data";
+import { LocalFoodRepository } from "./food-repository";
 import {
   STORAGE_KEYS,
   loadEntries,
@@ -21,13 +21,16 @@ import {
   saveEntries,
   saveProfile,
   saveTargets,
-  saveUserFoods,
 } from "./storage";
 import type {
   FoodEntry,
-  FoodItem,
+  FoodProduct,
+  FoodProductType,
   MealType,
   NutritionTargets,
+  UserProduct,
+  UserProductInput,
+  UserProductUpdate,
   UserProfile,
 } from "./types";
 
@@ -44,17 +47,11 @@ export interface UpdateEntryInput {
   unit: string;
 }
 
-/** Data needed to create a custom food. */
-export interface UserFoodInput {
-  name: string;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  baseUnit: "g" | "ml";
-  portionSize?: number | null;
-  isBranded?: boolean;
-}
+/**
+ * Legacy name kept for components; identical to UserProductInput from
+ * the product model.
+ */
+export type UserFoodInput = UserProductInput;
 
 interface DiaryContextValue {
   /** True once data has been loaded from localStorage. */
@@ -62,31 +59,28 @@ interface DiaryContextValue {
   entries: FoodEntry[];
   targets: NutritionTargets;
   profile: UserProfile;
-  /** Built-in and user-created foods. */
-  allFoods: FoodItem[];
-  userFoods: FoodItem[];
-  findFood: (id: string) => FoodItem | undefined;
+  /** Built-in and user-created products (via the local repository). */
+  allFoods: FoodProduct[];
+  userFoods: UserProduct[];
+  /** Resolves any product (generic / branded / user) by id. */
+  findFood: (id: string) => FoodProduct | undefined;
   addEntry: (input: AddEntryInput) => void;
   updateEntry: (id: string, changes: UpdateEntryInput) => void;
   removeEntry: (id: string) => void;
   setTargets: (targets: NutritionTargets) => void;
   setProfile: (profile: UserProfile) => void;
-  addUserFood: (input: UserFoodInput) => FoodItem;
+  addUserFood: (input: UserFoodInput) => FoodProduct;
+  updateUserFood: (id: string, changes: UserProductUpdate) => void;
   deleteUserFood: (id: string) => void;
 }
 
 const DiaryContext = createContext<DiaryContextValue | null>(null);
 
-function createId(prefix: string): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
 /**
- * Holds all diary data (food entries, targets, profile, user foods) and
- * keeps it in sync with localStorage. Also syncs between browser tabs.
+ * Holds all diary data (food entries, targets, profile, user products)
+ * and keeps it in sync with localStorage. Product data access goes
+ * through a LocalFoodRepository so the UI never depends on the
+ * hardcoded food array directly. Also syncs between browser tabs.
  */
 export function DiaryProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -95,7 +89,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     DEFAULT_TARGETS,
   );
   const [profile, setProfileState] = useState<UserProfile>(DEFAULT_PROFILE);
-  const [userFoods, setUserFoods] = useState<FoodItem[]>([]);
+  const [userFoods, setUserFoods] = useState<UserProduct[]>([]);
 
   useEffect(() => {
     setEntries(loadEntries());
@@ -115,37 +109,41 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const allFoods = useMemo(
-    () => [...userFoods, ...builtInFoods],
+  const repository = useMemo(
+    () => new LocalFoodRepository(userFoods),
     [userFoods],
   );
 
-  const foodIndex = useMemo(() => {
-    const index = new Map<string, FoodItem>();
-    for (const food of allFoods) index.set(food.id, food);
-    return index;
-  }, [allFoods]);
+  const allFoods = useMemo(() => repository.getAll(), [repository]);
 
   const findFood = useCallback(
-    (id: string) => foodIndex.get(id),
-    [foodIndex],
+    (id: string) => repository.getById(id),
+    [repository],
   );
 
-  const addEntry = useCallback((input: AddEntryInput) => {
-    const entry: FoodEntry = {
-      id: createId("entry"),
-      foodId: input.foodId,
-      mealType: input.mealType,
-      amount: Math.round(input.amount * 100) / 100,
-      unit: input.unit,
-      date: input.date ?? todayKey(),
-    };
-    setEntries((previous) => {
-      const next = [...previous, entry];
-      saveEntries(next);
-      return next;
-    });
-  }, []);
+  const addEntry = useCallback(
+    (input: AddEntryInput) => {
+      setEntries((previous) => {
+        // Stamp the product type and creation time on new entries.
+        const food = repository.getById(input.foodId);
+        const foodType: FoodProductType | undefined = food?.type;
+        const entry: FoodEntry = {
+          id: createId("entry"),
+          foodId: input.foodId,
+          ...(foodType ? { foodType } : {}),
+          mealType: input.mealType,
+          amount: Math.round(input.amount * 100) / 100,
+          unit: input.unit,
+          date: input.date ?? todayKey(),
+          createdAt: new Date().toISOString(),
+        };
+        const next = [...previous, entry];
+        saveEntries(next);
+        return next;
+      });
+    },
+    [repository],
+  );
 
   const updateEntry = useCallback((id: string, changes: UpdateEntryInput) => {
     setEntries((previous) => {
@@ -181,77 +179,32 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     saveProfile(next);
   }, []);
 
-  const addUserFood = useCallback((input: UserFoodInput): FoodItem => {
-    const baseUnitKey = input.baseUnit;
-    const baseUnit = baseUnitKey === "ml" ? ML_UNIT : G_UNIT;
-    const units =
-      input.portionSize && input.portionSize > 0
-        ? [
-            {
-              key: "serving",
-              kind: "serving" as const,
-              label: "порция",
-              few: "порции",
-              many: "порций",
-              base: input.portionSize,
-            },
-            baseUnit,
-          ]
-        : [baseUnit];
-    const servingOptions =
-      input.portionSize && input.portionSize > 0
-        ? [
-            { amount: 1, unitKey: "serving" },
-            { amount: 100, unitKey: baseUnitKey },
-          ]
-        : baseUnitKey === "ml"
-          ? [
-              { amount: 100, unitKey: "ml" },
-              { amount: 200, unitKey: "ml" },
-              { amount: 250, unitKey: "ml" },
-            ]
-          : [
-              { amount: 50, unitKey: "g" },
-              { amount: 100, unitKey: "g" },
-              { amount: 150, unitKey: "g" },
-            ];
+  const addUserFood = useCallback(
+    (input: UserFoodInput): FoodProduct => {
+      // The repository builds the product and persists it; the state
+      // mirrors the storage (single source of truth).
+      const product = repository.createUserProduct(input);
+      setUserFoods(loadUserFoods());
+      return product;
+    },
+    [repository],
+  );
 
-    const food: FoodItem = {
-      id: createId("user"),
-      name: input.name.trim(),
-      category: "user",
-      aliases: [],
-      calories: input.calories,
-      protein: input.protein,
-      fat: input.fat,
-      carbs: input.carbs,
-      baseUnit: input.baseUnit,
-      units,
-      servingOptions,
-      defaultServing:
-        input.portionSize && input.portionSize > 0
-          ? { amount: 1, unitKey: "serving" }
-          : { amount: 100, unitKey: baseUnitKey },
-      sourceType: "user",
-      sourceName: "Пользователь",
-      isBranded: input.isBranded === true,
-    };
+  const updateUserFood = useCallback(
+    (id: string, changes: UserProductUpdate) => {
+      repository.updateUserProduct(id, changes);
+      setUserFoods(loadUserFoods());
+    },
+    [repository],
+  );
 
-    setUserFoods((previous) => {
-      const next = [food, ...previous];
-      saveUserFoods(next);
-      return next;
-    });
-    return food;
-  }, []);
-
-  const deleteUserFood = useCallback((id: string) => {
-    setUserFoods((previous) => {
-      const next = previous.filter((food) => food.id !== id);
-      saveUserFoods(next);
-      return next;
-    });
-  }, []);
+  const deleteUserFood = useCallback(
+    (id: string) => {
+      repository.deleteUserProduct(id);
+      setUserFoods(loadUserFoods());
+    },
+    [repository],
+  );
 
   const value = useMemo(
     () => ({
@@ -268,6 +221,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       setTargets,
       setProfile,
       addUserFood,
+      updateUserFood,
       deleteUserFood,
     }),
     [
@@ -284,6 +238,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       setTargets,
       setProfile,
       addUserFood,
+      updateUserFood,
       deleteUserFood,
     ],
   );
@@ -291,6 +246,13 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   return (
     <DiaryContext.Provider value={value}>{children}</DiaryContext.Provider>
   );
+}
+
+function createId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function useDiary(): DiaryContextValue {
