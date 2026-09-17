@@ -9,7 +9,7 @@ interface WeeklyOverviewProps {
   target: number;
 }
 
-/** Simple bar-chart overview of the last 7 days. */
+/** Lightweight bar-chart overview of the last 7 days. */
 export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
   const values = days
     .map((day) => day.calories)
@@ -27,17 +27,21 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
   return (
     <Card className="p-5 sm:p-6">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Обзор недели</h2>
-        <span className="text-sm text-muted-foreground">последние 7 дней</span>
+        <h2 className="text-base font-semibold text-foreground">
+          Обзор недели
+        </h2>
+        <span className="text-[13px] text-muted-foreground">
+          последние 7 дней
+        </span>
       </div>
 
       {/* Chart */}
-      <div className="relative mt-6 h-44 sm:h-48">
+      <div className="relative mt-6 h-40 sm:h-44">
         <div
-          className="absolute inset-x-0 border-t border-dashed border-muted-foreground/50"
+          className="absolute inset-x-0 border-t border-dashed border-muted-foreground/40"
           style={{ bottom: `${targetPercent}%` }}
         >
-          <span className="absolute right-0 top-0 -translate-y-full pb-1 text-[10px] font-medium text-muted-foreground">
+          <span className="absolute right-0 top-0 -translate-y-full pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             норма
           </span>
         </div>
@@ -50,9 +54,9 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
             >
               <span
                 className={cn(
-                  "text-[10px] font-medium tabular-nums sm:text-xs",
+                  "text-[10px] font-semibold tabular-nums sm:text-xs",
                   day.calories === null
-                    ? "text-muted-foreground/60"
+                    ? "text-muted-foreground/50"
                     : day.isToday
                       ? "text-primary"
                       : "text-muted-foreground",
@@ -62,13 +66,13 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
               </span>
               {day.calories === null ? (
                 <div
-                  className="w-full rounded-t-md bg-foreground/10"
+                  className="w-full rounded-full bg-foreground/[0.07]"
                   style={{ height: "4px" }}
                 />
               ) : (
                 <div
                   className={cn(
-                    "w-full rounded-t-md",
+                    "w-full rounded-t-lg transition-[height] duration-500 ease-out motion-reduce:transition-none",
                     day.isToday ? "bg-primary" : "bg-primary/30",
                   )}
                   style={{ height: `${(day.calories / chartMax) * 100}%` }}
@@ -85,7 +89,7 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
           <span
             key={day.dateKey}
             className={cn(
-              "flex-1 text-center text-xs",
+              "flex-1 text-center text-xs font-medium",
               day.isToday ? "font-semibold text-primary" : "text-muted-foreground",
             )}
           >
@@ -95,16 +99,16 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
       </div>
 
       {/* Summary */}
-      <div className="mt-6 grid grid-cols-2 divide-x divide-border border-t border-border pt-5">
+      <div className="mt-6 grid grid-cols-2 divide-x divide-border/70 border-t border-border/70 pt-5">
         <div className="pr-4">
           <p className="text-[13px] text-muted-foreground">Среднее за день</p>
-          <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+          <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
             {average === null ? "—" : `${formatNumber(average)} ккал`}
           </p>
         </div>
         <div className="pl-4">
           <p className="text-[13px] text-muted-foreground">В норме</p>
-          <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+          <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
             {daysWithData === 0
               ? "—"
               : `${inNormCount} из ${daysWithData} дней`}

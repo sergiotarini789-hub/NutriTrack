@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronDown, Minus, Plus } from "lucide-react";
-import { categoryIcon } from "@/lib/food-data";
+import { MEALS } from "@/lib/app-data";
+import { categoryIcon, getCategory } from "@/lib/food-data";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 import {
@@ -16,7 +17,7 @@ import {
   toBaseAmount,
   unitLabelFor,
 } from "@/lib/nutrition";
-import type { FoodItem } from "@/lib/types";
+import type { FoodItem, MealType } from "@/lib/types";
 
 const MAX_QUICK_SERVINGS = 8;
 
@@ -29,9 +30,16 @@ interface FoodQuantityProps {
   onUnitChange: (unitKey: string) => void;
   /** Called when the user presses Enter in the input. */
   onSubmit: () => void;
+  /** Meal picker (add-food flow only). */
+  meal?: MealType | null;
+  onMealChange?: (meal: MealType) => void;
 }
 
-/** Amount editor with unit selector, quick servings and live nutrition. */
+/**
+ * Product detail: large quantity stepper with unit selector, quick
+ * servings, live nutrition and an optional meal picker. Nutrition
+ * updates immediately on every change.
+ */
 export function FoodQuantity({
   food,
   amount,
@@ -39,12 +47,15 @@ export function FoodQuantity({
   onAmountChange,
   onUnitChange,
   onSubmit,
+  meal = null,
+  onMealChange,
 }: FoodQuantityProps) {
   const parsed = parseAmountInput(amount);
   const valid = parsed !== null && parsed > 0;
   const nutrition =
     valid && parsed !== null ? nutritionForServing(food, parsed, unitKey) : null;
   const Icon = categoryIcon(food.category);
+  const category = getCategory(food.category);
   const step = stepForUnit(unitKey, food);
   const min = minForUnit(unitKey, food);
   const isBase = unitKey === food.baseUnit;
@@ -67,39 +78,37 @@ export function FoodQuantity({
 
   return (
     <div>
-      {/* Selected food */}
-      <div className="flex items-center gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      {/* Product header */}
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Icon className="h-6 w-6" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold text-foreground">
+          <p className="truncate text-lg font-bold tracking-tight text-foreground">
             {food.name}
           </p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            {formatNumber(food.calories)} ккал / 100 {baseUnitLabel(food)}
+          <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+            {category.name} · {formatNumber(food.calories)} ккал / 100{" "}
+            {baseUnitLabel(food)}
           </p>
         </div>
       </div>
 
-      {/* Amount */}
-      <p className="mt-6 text-sm font-medium text-foreground">Количество</p>
-      <div className="mt-2 flex items-center justify-center gap-2 sm:gap-3">
+      {/* Quantity stepper */}
+      <div className="mt-6 flex items-center justify-center gap-2.5 sm:gap-3">
         <button
           type="button"
           onClick={() => changeBy(-step)}
           aria-label="Уменьшить количество"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-foreground/5 active:bg-foreground/10"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-foreground/[0.06] text-foreground transition-[background-color,transform] duration-150 hover:bg-foreground/10 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <Minus className="h-5 w-5" />
+          <Minus className="h-5 w-5" strokeWidth={2.25} />
         </button>
 
         <span
           className={cn(
-            "flex h-12 items-stretch overflow-hidden rounded-xl border bg-card focus-within:ring-2",
-            valid
-              ? "border-border focus-within:border-primary focus-within:ring-primary/20"
-              : "border-red-500 focus-within:ring-red-500/20",
+            "flex h-14 items-stretch overflow-hidden rounded-2xl border border-transparent bg-foreground/[0.05] transition-[border-color,box-shadow] focus-within:border-primary/50 focus-within:bg-card focus-within:ring-4 focus-within:ring-primary/10",
+            !valid && "border-red-500/60",
           )}
         >
           <input
@@ -111,14 +120,14 @@ export function FoodQuantity({
               if (event.key === "Enter") onSubmit();
             }}
             aria-label="Количество"
-            className="h-full w-[4.5rem] bg-transparent px-2 text-center text-lg font-semibold tabular-nums text-foreground outline-none"
+            className="h-full w-24 bg-transparent px-2 text-center text-2xl font-bold tabular-nums tracking-tight text-foreground outline-none"
           />
           <span className="relative flex items-stretch">
             <select
               value={unitKey}
               onChange={(event) => handleUnitChange(event.target.value)}
               aria-label="Единица измерения"
-              className="h-full cursor-pointer appearance-none border-l border-border bg-card py-0 pl-2.5 pr-7 text-[15px] font-medium text-foreground outline-none"
+              className="h-full cursor-pointer appearance-none border-l border-foreground/10 bg-transparent py-0 pl-2 pr-7 text-[15px] font-semibold text-foreground outline-none"
             >
               {food.units.map((option) => (
                 <option key={option.key} value={option.key}>
@@ -136,15 +145,15 @@ export function FoodQuantity({
           type="button"
           onClick={() => changeBy(step)}
           aria-label="Увеличить количество"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-foreground/5 active:bg-foreground/10"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/25 transition-[background-color,transform] duration-150 hover:bg-primary-hover active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-5 w-5" strokeWidth={2.25} />
         </button>
       </div>
 
       {/* Base-unit equivalent */}
       {valid && parsed !== null && !isBase && (
-        <p className="mt-2 text-center text-[13px] text-muted-foreground">
+        <p className="mt-2.5 text-center text-[13px] tabular-nums text-muted-foreground">
           ≈ {formatNumber(toBaseAmount(food, parsed, unitKey))}{" "}
           {baseUnitLabel(food)}
         </p>
@@ -167,10 +176,10 @@ export function FoodQuantity({
                 onUnitChange(serving.unitKey);
               }}
               className={cn(
-                "rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+                "h-9 rounded-full px-3.5 text-sm transition-[background-color,color,transform] duration-150 active:scale-95",
                 active
-                  ? "border-primary bg-primary/10 font-medium text-primary"
-                  : "border-border text-muted-foreground hover:bg-foreground/5",
+                  ? "bg-primary font-semibold text-primary-foreground"
+                  : "bg-foreground/[0.06] font-medium text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
               )}
             >
               {formatServing(food, serving)}
@@ -181,7 +190,7 @@ export function FoodQuantity({
 
       {!valid && (
         <p
-          className="mt-3 text-center text-[13px] text-red-600 dark:text-red-400"
+          className="mt-3 text-center text-[13px] font-medium text-red-600 dark:text-red-400"
           role="alert"
         >
           Введите количество больше 0
@@ -189,7 +198,7 @@ export function FoodQuantity({
       )}
 
       {/* Live nutrition preview */}
-      <div className="mt-6 rounded-2xl border border-border bg-background/50 p-4">
+      <div className="mt-6 rounded-3xl bg-foreground/[0.03] px-4 py-5 text-center">
         <p className="text-[13px] font-medium text-muted-foreground">
           Пищевая ценность
           {valid && parsed !== null && (
@@ -198,31 +207,68 @@ export function FoodQuantity({
             </span>
           )}
         </p>
-        <p className="mt-1.5 text-2xl font-bold tabular-nums text-foreground">
-          {formatNumber(nutrition?.calories ?? 0)}{" "}
-          <span className="text-sm font-medium text-muted-foreground">ккал</span>
+        <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+          {formatNumber(nutrition?.calories ?? 0)}
+          <span className="ml-1.5 text-sm font-medium text-muted-foreground">
+            ккал
+          </span>
         </p>
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           <div>
             <p className="text-xs text-muted-foreground">Белки</p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-protein">
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-protein">
               {formatNumber(nutrition?.protein ?? 0)} г
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Жиры</p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-fat">
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-fat">
               {formatNumber(nutrition?.fat ?? 0)} г
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Углеводы</p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-carbs">
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-carbs">
               {formatNumber(nutrition?.carbs ?? 0)} г
             </p>
           </div>
         </div>
       </div>
+
+      {/* Meal picker (add-food flow) */}
+      {onMealChange && (
+        <div className="mt-6">
+          <p className="text-[13px] font-semibold text-muted-foreground">
+            Приём пищи
+          </p>
+          <div
+            className="mt-2 grid grid-cols-4 gap-1 rounded-2xl bg-foreground/[0.05] p-1"
+            role="radiogroup"
+            aria-label="Приём пищи"
+          >
+            {MEALS.map((mealOption) => {
+              const active = meal === mealOption.id;
+              return (
+                <button
+                  key={mealOption.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => onMealChange(mealOption.id)}
+                  className={cn(
+                    "h-10 truncate rounded-xl px-1 text-[13px] transition-colors duration-150",
+                    active
+                      ? "bg-card font-semibold text-foreground shadow-sm"
+                      : "font-medium text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {mealOption.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

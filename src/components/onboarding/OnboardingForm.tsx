@@ -38,10 +38,10 @@ function OptionRow({ label, description, icon: Icon, selected, onClick }: Option
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "flex w-full items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-colors sm:p-4",
+        "flex w-full items-center gap-3.5 rounded-2xl p-3.5 text-left transition-[background-color,box-shadow] duration-150 active:scale-[0.99] sm:p-4",
         selected
-          ? "border-primary bg-primary/5"
-          : "border-border bg-card hover:bg-foreground/[0.03]",
+          ? "bg-primary/[0.07] ring-2 ring-primary"
+          : "bg-card ring-1 ring-border/70 hover:bg-foreground/[0.03]",
       )}
     >
       <span
@@ -49,7 +49,7 @@ function OptionRow({ label, description, icon: Icon, selected, onClick }: Option
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
           selected
             ? "bg-primary/10 text-primary"
-            : "bg-foreground/5 text-muted-foreground",
+            : "bg-foreground/[0.06] text-muted-foreground",
         )}
       >
         <Icon className="h-5 w-5" />
@@ -90,10 +90,10 @@ function GenderOption({ label, icon: Icon, selected, onClick }: GenderOptionProp
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "flex flex-col items-center gap-3 rounded-2xl border p-5 transition-colors sm:p-6",
+        "flex flex-col items-center gap-3 rounded-2xl p-5 transition-[background-color,box-shadow] duration-150 active:scale-[0.98] sm:p-6",
         selected
-          ? "border-primary bg-primary/5"
-          : "border-border bg-card hover:bg-foreground/[0.03]",
+          ? "bg-primary/[0.07] ring-2 ring-primary"
+          : "bg-card ring-1 ring-border/70 hover:bg-foreground/[0.03]",
       )}
     >
       <span
@@ -101,7 +101,7 @@ function GenderOption({ label, icon: Icon, selected, onClick }: GenderOptionProp
           "flex h-12 w-12 items-center justify-center rounded-full",
           selected
             ? "bg-primary/10 text-primary"
-            : "bg-foreground/5 text-muted-foreground",
+            : "bg-foreground/[0.06] text-muted-foreground",
         )}
       >
         <Icon className="h-6 w-6" />
@@ -196,7 +196,7 @@ export function OnboardingForm() {
           <span
             key={index}
             className={cn(
-              "h-1.5 flex-1 rounded-full",
+              "h-1 flex-1 rounded-full transition-colors duration-300",
               index <= step ? "bg-primary" : "bg-foreground/10",
             )}
           />
@@ -205,7 +205,7 @@ export function OnboardingForm() {
 
       {/* Step content */}
       <div key={step} className="animate-step-in mt-8 flex-1 sm:mt-12">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-[26px] font-bold tracking-tight text-foreground">
           {STEPS[step].title}
         </h1>
         <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">

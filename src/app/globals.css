@@ -3,30 +3,37 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * NutriTrack design system
+ * ------------------------
+ * One accent color (emerald family) + three muted macro hues.
+ * Surfaces are borderless and filled; hairlines only where lists need
+ * separation. Large tabular numerals carry the visual hierarchy.
+ */
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
+  --background: #f2f5f1;
+  --foreground: #131a15;
   --card: #ffffff;
-  --border: #e4e4e7;
-  --muted-foreground: #71717a;
-  --primary: #16a34a;
-  --primary-hover: #15803d;
+  --border: #e3e8e1;
+  --muted-foreground: #5f6d64;
+  --primary: #047857;
+  --primary-hover: #036c4b;
   --primary-foreground: #ffffff;
   --protein: #2563eb;
-  --fat: #d97706;
+  --fat: #b45309;
   --carbs: #7c3aed;
   color-scheme: light;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --border: #27272a;
-  --muted-foreground: #a1a1aa;
-  --primary: #22c55e;
-  --primary-hover: #4ade80;
-  --primary-foreground: #052e16;
+  --background: #0b0f0d;
+  --foreground: #eef2ee;
+  --card: #151b17;
+  --border: #242c26;
+  --muted-foreground: #93a198;
+  --primary: #34d399;
+  --primary-hover: #6ee7b7;
+  --primary-foreground: #03291d;
   --protein: #60a5fa;
   --fat: #fbbf24;
   --carbs: #a78bfa;
@@ -48,6 +55,10 @@
   --color-protein: var(--protein);
   --color-fat: var(--fat);
   --color-carbs: var(--carbs);
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.5rem;
 }
 
 @layer base {
@@ -58,13 +69,20 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
   }
+
+  /* Consistent number rendering for stats. */
+  body {
+    font-feature-settings: "cv05" "cv11";
+  }
 }
 
-/* Subtle enter animation for onboarding steps */
+/* --- Motion -------------------------------------------------- */
+
+/* Onboarding step / expanding meal content */
 @keyframes step-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -73,10 +91,10 @@
 }
 
 .animate-step-in {
-  animation: step-in 0.2s ease-out;
+  animation: step-in 0.22s ease-out;
 }
 
-/* Modal transitions */
+/* Modal backdrop */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -86,10 +104,11 @@
   }
 }
 
+/* Bottom sheet slide-up (mobile) */
 @keyframes sheet-in {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(40px);
   }
   to {
     opacity: 1;
@@ -97,27 +116,28 @@
   }
 }
 
+/* Centered dialog (desktop) */
 @keyframes scale-in {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
 @utility animate-fade-in {
-  animation: fade-in 0.15s ease-out;
+  animation: fade-in 0.18s ease-out;
 }
 
 @utility animate-sheet-in {
-  animation: sheet-in 0.2s ease-out;
+  animation: sheet-in 0.3s cubic-bezier(0.32, 0.72, 0.28, 1);
 }
 
 @utility animate-scale-in {
-  animation: scale-in 0.15s ease-out;
+  animation: scale-in 0.22s cubic-bezier(0.32, 0.72, 0.28, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

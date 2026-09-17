@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -8,7 +9,6 @@ import { useDiary } from "@/lib/diary";
 import { categoryIcon, getCategory } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
 import { baseUnitLabel, formatServing } from "@/lib/nutrition";
-import { useRef, useState } from "react";
 import type { FoodItem } from "@/lib/types";
 
 interface FoodDetailsModalProps {
@@ -46,14 +46,14 @@ export function FoodDetailsModal({
           food ? (
             <div className="flex gap-3">
               {food.sourceType === "user" && (
-                <Button variant="secondary" size="lg" onClick={handleDelete}>
+                <Button variant="danger" size="lg" onClick={handleDelete}>
                   <Trash2 className="h-4 w-4" />
                   Удалить
                 </Button>
               )}
               <Button
                 size="lg"
-                className="flex-1"
+                className="flex-1 rounded-full"
                 onClick={() => onAddToDiary(food)}
               >
                 Добавить в дневник
@@ -72,91 +72,101 @@ export function FoodDetailsModal({
 function FoodDetails({ food }: { food: FoodItem }) {
   const Icon = categoryIcon(food.category);
   const category = getCategory(food.category);
+  const isUser = food.sourceType === "user";
   const extraUnits = food.units.filter(
     (unit) => unit.key !== food.baseUnit,
   );
 
   return (
     <div>
-      <div className="flex items-center gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      {/* Product header */}
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Icon className="h-6 w-6" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-lg font-semibold text-foreground">
+          <p className="truncate text-lg font-bold tracking-tight text-foreground">
             {food.name}
           </p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            {category.name}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {category.name}
+            </span>
+            <span
+              className={
+                isUser
+                  ? "rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary"
+                  : "rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+              }
+            >
+              {isUser ? "Ваш продукт" : "Справочное значение"}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-border p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-muted-foreground">
-            Пищевая ценность на 100 {baseUnitLabel(food)}
+      {/* Nutrition */}
+      <div className="mt-5 rounded-3xl bg-foreground/[0.03] p-5 text-center">
+        <p className="text-[13px] font-medium text-muted-foreground">
+          Пищевая ценность на 100 {baseUnitLabel(food)}
+        </p>
+        <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+          {formatNumber(food.calories)}
+          <span className="ml-1.5 text-sm font-medium text-muted-foreground">
+            ккал
           </span>
-        </div>
-        <div className="mt-1.5 flex items-baseline justify-between">
-          <span className="text-sm text-muted-foreground">Калории</span>
-          <span className="text-xl font-bold tabular-nums text-foreground">
-            {formatNumber(food.calories)}{" "}
-            <span className="text-sm font-medium text-muted-foreground">ккал</span>
-          </span>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4">
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-2">
           <div>
             <p className="text-xs text-muted-foreground">Белки</p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-protein">
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-protein">
               {formatNumber(food.protein)} г
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Жиры</p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-fat">
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-fat">
               {formatNumber(food.fat)} г
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Углеводы</p>
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-carbs">
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-carbs">
               {formatNumber(food.carbs)} г
             </p>
           </div>
         </div>
       </div>
 
+      {/* Servings */}
       {extraUnits.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-border p-4">
-          <p className="text-[13px] font-medium text-muted-foreground">
+        <div className="mt-5">
+          <p className="text-[13px] font-semibold text-muted-foreground">
             Порции
           </p>
-          <ul className="mt-2 space-y-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-2">
             {extraUnits.map((unit) => (
-              <li
+              <span
                 key={unit.key}
-                className="flex items-center justify-between text-sm"
+                className="rounded-full bg-foreground/[0.06] px-3 py-1.5 text-[13px] font-medium tabular-nums text-foreground"
               >
-                <span className="text-foreground">
-                  1 {unit.label} ≈ {formatNumber(unit.base)} {baseUnitLabel(food)}
-                </span>
-              </li>
+                1 {unit.label} ≈ {formatNumber(unit.base)} {baseUnitLabel(food)}
+              </span>
             ))}
-            {food.servingOptions.length > 0 && (
-              <li className="pt-1 text-[13px] text-muted-foreground">
-                Быстрый выбор:{" "}
-                {food.servingOptions
-                  .slice(0, 4)
-                  .map((serving) => formatServing(food, serving))
-                  .join(", ")}
-              </li>
-            )}
-          </ul>
+          </div>
+          {food.servingOptions.length > 0 && (
+            <p className="mt-2.5 text-[13px] text-muted-foreground">
+              Быстрый выбор:{" "}
+              {food.servingOptions
+                .slice(0, 4)
+                .map((serving) => formatServing(food, serving))
+                .join(", ")}
+            </p>
+          )}
         </div>
       )}
 
-      <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
         {food.sourceName && <>Источник: {food.sourceName}. </>}
         Значения носят справочный характер.
       </p>

@@ -55,7 +55,7 @@ export function FoodsExplorer() {
   return (
     <div>
       {/* Search + create */}
-      <div className="flex gap-2">
+      <div className="flex gap-2.5">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
           <input
@@ -64,14 +64,14 @@ export function FoodsExplorer() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Поиск продукта..."
             aria-label="Поиск продукта"
-            className="h-12 w-full rounded-2xl border border-border bg-card pl-11 pr-11 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-12 w-full rounded-2xl border border-transparent bg-foreground/[0.05] pl-11 pr-11 text-base text-foreground outline-none transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground/70 focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/10"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Очистить поиск"
-              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -109,7 +109,7 @@ export function FoodsExplorer() {
       </p>
 
       {/* Results */}
-      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-2.5 md:grid-cols-2">
         {filtered.map((food) => (
           <FoodCard key={food.id} food={food} onClick={() => setDetailsFood(food)} />
         ))}
@@ -117,8 +117,8 @@ export function FoodsExplorer() {
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-14 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/5 text-muted-foreground">
+        <div className="mt-3 flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-14 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground">
             <SearchX className="h-6 w-6" />
           </span>
           <p className="mt-4 text-[15px] font-medium text-foreground">

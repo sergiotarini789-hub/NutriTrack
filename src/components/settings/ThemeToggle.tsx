@@ -30,13 +30,13 @@ export function ThemeToggle() {
       aria-label="Тёмная тема"
       onClick={toggle}
       className={cn(
-        "relative h-6 w-11 rounded-full transition-colors",
+        "relative h-7 w-12 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         enabled ? "bg-primary" : "bg-foreground/20",
       )}
     >
       <span
         className={cn(
-          "absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+          "absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200",
           enabled && "translate-x-5",
         )}
       />

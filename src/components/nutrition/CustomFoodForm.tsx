@@ -115,10 +115,10 @@ export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
               aria-pressed={baseUnit === option.value}
               onClick={() => setBaseUnit(option.value)}
               className={cn(
-                "h-11 rounded-xl border text-sm font-medium transition-colors",
+                "h-11 rounded-xl text-sm font-semibold transition-[background-color,color] duration-150 active:scale-[0.98]",
                 baseUnit === option.value
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border text-muted-foreground hover:bg-foreground/5",
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-foreground/[0.06] text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
               )}
             >
               {option.label}

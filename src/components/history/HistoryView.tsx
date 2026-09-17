@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -31,15 +32,29 @@ export function HistoryView() {
   const days: HistoryDayInfo[] = lastNDays(HISTORY_DAYS).map((date) => {
     const key = dateKey(date);
     const dayEntries = entriesForDate(entries, key);
+    if (dayEntries.length === 0) {
+      return {
+        dateKey: key,
+        label: formatDayMonth(date),
+        weekdayLabel: weekdayLong(date),
+        shortWeekday: weekdayShort(date),
+        calories: null,
+        protein: null,
+        fat: null,
+        carbs: null,
+        isToday: key === today,
+      };
+    }
+    const totals = nutritionOfEntries(resolveEntries(dayEntries, findFood));
     return {
       dateKey: key,
       label: formatDayMonth(date),
       weekdayLabel: weekdayLong(date),
       shortWeekday: weekdayShort(date),
-      calories:
-        dayEntries.length > 0
-          ? nutritionOfEntries(resolveEntries(dayEntries, findFood)).calories
-          : null,
+      calories: totals.calories,
+      protein: totals.protein,
+      fat: totals.fat,
+      carbs: totals.carbs,
       isToday: key === today,
     };
   });
@@ -54,14 +69,14 @@ export function HistoryView() {
       />
 
       {hasData ? (
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           <WeeklyOverview days={days} target={targets.calories} />
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-foreground">
+            <h2 className="mb-3 text-base font-semibold text-foreground">
               По дням
             </h2>
-            <Card className="divide-y divide-border">
+            <Card className="divide-y divide-border/70">
               {[...days].reverse().map((day) => (
                 <HistoryDayCard
                   key={day.dateKey}
@@ -74,7 +89,7 @@ export function HistoryView() {
         </div>
       ) : (
         <Card className="flex flex-col items-center px-6 py-16 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/5 text-muted-foreground">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground">
             <CalendarDays className="h-6 w-6" />
           </span>
           <p className="mt-4 text-[15px] font-medium text-foreground">
@@ -83,11 +98,8 @@ export function HistoryView() {
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">
             Добавьте еду на странице «Сегодня», чтобы увидеть историю питания
           </p>
-          <Link
-            href="/today"
-            className="mt-5 inline-flex h-10 items-center justify-center rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-foreground/5"
-          >
-            Перейти к «Сегодня»
+          <Link href="/today" className="mt-5">
+            <Button variant="secondary">Перейти к «Сегодня»</Button>
           </Link>
         </Card>
       )}

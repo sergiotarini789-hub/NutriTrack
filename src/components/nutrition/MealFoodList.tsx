@@ -21,13 +21,13 @@ interface MealFoodListProps {
   items: ResolvedEntry[];
 }
 
-/** List of foods inside a meal with quick edit, edit and delete controls. */
+/** Compact food rows with quick amount edit, full edit and delete. */
 export function MealFoodList({ items }: MealFoodListProps) {
   const [editItem, setEditItem] = useState<ResolvedEntry | null>(null);
 
   return (
     <>
-      <ul className="divide-y divide-border">
+      <ul className="space-y-0.5">
         {items.map((item) => (
           <MealFoodRow key={item.entry.id} item={item} onEdit={setEditItem} />
         ))}
@@ -49,56 +49,54 @@ function MealFoodRow({ item, onEdit }: MealFoodRowProps) {
   const nutrition = nutritionForServing(food, entry.amount, entry.unit);
 
   return (
-    <li className="py-2.5">
-      <div className="flex items-center gap-2.5">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">
-            {food.name}
-          </p>
-          {inlineOpen ? (
-            <InlineAmountEditor
-              item={item}
-              onDone={() => setInlineOpen(false)}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setInlineOpen(true)}
-              title="Изменить количество"
-              className="mt-0.5 -ml-1 rounded-md px-1 py-0.5 text-xs tabular-nums text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
-            >
-              {formatEntryAmount(food, entry.amount, entry.unit)}
-            </button>
-          )}
-        </div>
-
-        <p className="shrink-0 text-sm tabular-nums text-foreground">
-          <span className="font-semibold">
-            {formatNumber(nutrition.calories)}
-          </span>{" "}
-          <span className="text-muted-foreground">ккал</span>
+    <li className="group flex items-center gap-2 rounded-xl px-1 py-1.5 transition-colors hover:bg-foreground/[0.03]">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">
+          {food.name}
         </p>
+        {inlineOpen ? (
+          <InlineAmountEditor
+            item={item}
+            onDone={() => setInlineOpen(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setInlineOpen(true)}
+            title="Изменить количество"
+            className="mt-px -ml-1 rounded-md px-1 py-0.5 text-xs tabular-nums text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            {formatEntryAmount(food, entry.amount, entry.unit)}
+          </button>
+        )}
+      </div>
 
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => onEdit(item)}
-            aria-label={`Изменить: ${food.name}`}
-            title="Изменить"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => removeEntry(entry.id)}
-            aria-label={`Удалить: ${food.name}`}
-            title="Удалить"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+      <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+        {formatNumber(nutrition.calories)}
+        <span className="ml-1 text-xs font-medium text-muted-foreground">
+          ккал
+        </span>
+      </p>
+
+      <div className="flex shrink-0 items-center">
+        <button
+          type="button"
+          onClick={() => onEdit(item)}
+          aria-label={`Изменить: ${food.name}`}
+          title="Изменить"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => removeEntry(entry.id)}
+          aria-label={`Удалить: ${food.name}`}
+          title="Удалить"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
     </li>
   );
@@ -158,12 +156,12 @@ function InlineAmountEditor({
   }
 
   return (
-    <span className="mt-1 flex items-center gap-1">
+    <span className="mt-0.5 flex items-center gap-1">
       <button
         type="button"
         onClick={() => changeBy(-step)}
         aria-label="Уменьшить количество"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground active:scale-90"
       >
         <Minus className="h-3.5 w-3.5" />
       </button>
@@ -177,7 +175,7 @@ function InlineAmountEditor({
         onBlur={commitText}
         onKeyDown={handleKeyDown}
         className={cn(
-          "h-7 w-16 rounded-lg border border-border bg-card px-1.5 text-center text-xs font-semibold tabular-nums text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
+          "h-7 w-16 rounded-full bg-foreground/[0.06] px-1.5 text-center text-xs font-semibold tabular-nums text-foreground outline-none transition-[background-color,box-shadow] focus:bg-card focus:ring-2 focus:ring-primary/30",
         )}
       />
       <span className="text-xs text-muted-foreground">
@@ -187,7 +185,7 @@ function InlineAmountEditor({
         type="button"
         onClick={() => changeBy(step)}
         aria-label="Увеличить количество"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground active:scale-90"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>

@@ -18,8 +18,9 @@ const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Accessible modal dialog: bottom sheet on mobile, centered dialog on
- * desktop. Handles Esc, backdrop click, focus trapping and scroll lock.
+ * Accessible modal dialog: bottom sheet with a grab handle on mobile,
+ * centered dialog on desktop. Handles Esc, backdrop click, focus
+ * trapping and scroll lock.
  */
 export function Modal({ open, onClose, title, children, footer, onBack }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -77,7 +78,7 @@ export function Modal({ open, onClose, title, children, footer, onBack }: ModalP
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
       <div
-        className="animate-fade-in absolute inset-0 bg-black/40"
+        className="animate-fade-in absolute inset-0 bg-black/45"
         onClick={() => onCloseRef.current()}
         aria-hidden="true"
       />
@@ -87,38 +88,46 @@ export function Modal({ open, onClose, title, children, footer, onBack }: ModalP
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="animate-sheet-in relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl border border-border bg-card shadow-xl outline-none sm:max-h-[85dvh] sm:animate-scale-in sm:rounded-3xl"
+        className="animate-sheet-in relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-card shadow-2xl outline-none sm:animate-scale-in sm:max-h-[85dvh] sm:rounded-[28px]"
       >
-        <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-3 sm:px-4">
+        {/* Mobile grab handle */}
+        <div
+          className="flex shrink-0 justify-center pt-2.5 sm:hidden"
+          aria-hidden="true"
+        >
+          <span className="h-1 w-10 rounded-full bg-foreground/15" />
+        </div>
+
+        <header className="flex h-14 shrink-0 items-center gap-1 pl-2 pr-3 sm:px-3">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
               aria-label="Назад"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground active:scale-95"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
           )}
-          <h2 className="min-w-0 flex-1 truncate px-1 text-lg font-semibold text-foreground">
+          <h2 className="min-w-0 flex-1 truncate px-1 text-center text-[15px] font-semibold text-foreground">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground active:scale-95"
           >
             <X className="h-5 w-5" />
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-1">
           {children}
         </div>
 
         {footer && (
-          <div className="shrink-0 border-t border-border px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+          <div className="shrink-0 border-t border-border/70 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 sm:pb-4">
             {footer}
           </div>
         )}

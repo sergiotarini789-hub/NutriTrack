@@ -41,6 +41,31 @@ export function mealName(mealType: MealType): string {
   return MEALS.find((meal) => meal.id === mealType)?.name ?? "";
 }
 
+/**
+ * Time-based default meal for the add-food flow (the user can always
+ * change it on the quantity step).
+ */
+export function defaultMealForNow(): MealType {
+  const hour = new Date().getHours();
+  if (hour >= 4 && hour < 11) return "breakfast";
+  if (hour < 16) return "lunch";
+  if (hour < 22) return "dinner";
+  return "snacks";
+}
+
+/**
+ * Foods offered under "Часто используемые" until the diary has enough
+ * real history of its own.
+ */
+export const FREQUENT_FOOD_IDS = [
+  "egg",
+  "banana",
+  "chicken-breast",
+  "milk-2.5",
+  "white-bread",
+  "buckwheat",
+] as const;
+
 export const GENDER_LABELS: Record<Gender, string> = {
   male: "Мужчина",
   female: "Женщина",

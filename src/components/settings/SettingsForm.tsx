@@ -22,6 +22,12 @@ interface Option<T extends string> {
   label: string;
 }
 
+const FIELD_CLASSES =
+  "w-24 rounded-xl border border-transparent bg-foreground/[0.05] px-2.5 py-2 text-right text-[15px] tabular-nums text-foreground outline-none transition-[background-color,border-color,box-shadow] focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/10";
+
+const SELECT_CLASSES =
+  "appearance-none rounded-xl border border-transparent bg-foreground/[0.05] py-2 pl-3 pr-8 text-[15px] text-foreground outline-none transition-[background-color,border-color,box-shadow] focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/10";
+
 /** Text input that commits a valid positive number on blur/Enter. */
 function NumberField({
   label,
@@ -64,8 +70,8 @@ function NumberField({
       }}
       className={
         invalid
-          ? "w-20 rounded-lg border border-red-500 bg-card px-2.5 py-1.5 text-right text-[15px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-red-500/20"
-          : "w-20 rounded-lg border border-border bg-card px-2.5 py-1.5 text-right text-[15px] tabular-nums text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+          ? "w-24 rounded-xl border border-red-500/60 bg-foreground/[0.05] px-2.5 py-2 text-right text-[15px] tabular-nums text-foreground outline-none focus:ring-4 focus:ring-red-500/10"
+          : FIELD_CLASSES
       }
     />
   );
@@ -88,7 +94,7 @@ function SelectField<T extends string>({
         aria-label={label}
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value as T)}
-        className="appearance-none rounded-lg border border-border bg-card py-1.5 pl-3 pr-8 text-[15px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+        className={SELECT_CLASSES}
       >
         {value === null && (
           <option value="" disabled>
@@ -134,12 +140,20 @@ export function SettingsForm() {
         title="Настройки"
         subtitle="Профиль, цели и параметры приложения"
       />
-      <p className="-mt-4 mb-6 text-[13px] text-muted-foreground">
+      <p className="-mt-3 mb-6 text-[13px] text-muted-foreground">
         Все изменения сохраняются автоматически
       </p>
 
       <div className="space-y-7">
         <SettingsSection title="Профиль">
+          <SettingRow label="Пол">
+            <SelectField
+              label="Пол"
+              value={profile.gender}
+              options={genderOptions}
+              onChange={(gender) => setProfile({ ...profile, gender })}
+            />
+          </SettingRow>
           <SettingRow label="Возраст">
             <NumberField
               label="Возраст"
@@ -170,17 +184,9 @@ export function SettingsForm() {
               кг
             </span>
           </SettingRow>
-          <SettingRow label="Пол">
+          <SettingRow label="Активность">
             <SelectField
-              label="Пол"
-              value={profile.gender}
-              options={genderOptions}
-              onChange={(gender) => setProfile({ ...profile, gender })}
-            />
-          </SettingRow>
-          <SettingRow label="Уровень активности">
-            <SelectField
-              label="Уровень активности"
+              label="Активность"
               value={profile.activity}
               options={activitySelectOptions}
               onChange={(activity) => setProfile({ ...profile, activity })}
@@ -197,7 +203,7 @@ export function SettingsForm() {
         </SettingsSection>
 
         <SettingsSection title="Питание">
-          <SettingRow label="Дневная норма калорий">
+          <SettingRow label="Калории">
             <NumberField
               label="Дневная норма калорий"
               value={targets.calories}
@@ -240,7 +246,7 @@ export function SettingsForm() {
         </SettingsSection>
 
         <SettingsSection title="Приложение">
-          <SettingRow label="Тёмная тема">
+          <SettingRow label="Тема">
             <ThemeToggle />
           </SettingRow>
 
@@ -254,7 +260,7 @@ export function SettingsForm() {
                   setUnits(next);
                   saveUnits(next);
                 }}
-                className="appearance-none rounded-lg border border-border bg-card py-1.5 pl-3 pr-8 text-[15px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className={SELECT_CLASSES}
               >
                 <option value="metric">Метрическая</option>
                 <option value="imperial">Имперская</option>

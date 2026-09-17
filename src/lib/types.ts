@@ -144,6 +144,10 @@ export interface HistoryDayInfo {
   shortWeekday: string;
   /** Total calories for the day, or null when there are no entries. */
   calories: number | null;
+  /** Macro totals for the day (null when there are no entries). */
+  protein: number | null;
+  fat: number | null;
+  carbs: number | null;
   isToday: boolean;
 }
 

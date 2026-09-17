@@ -6,44 +6,41 @@ import {
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
-interface NutritionCardProps {
+interface MacroStatProps {
   label: string;
   current: number;
   target: number;
-  unit: string;
   color: ProgressColor;
   /** Highlights the value when the target is exceeded. */
   over?: boolean;
 }
 
-/** Label, current / target value and a progress bar for one nutrient. */
-export function NutritionCard({
+/**
+ * One compact macro indicator: colored dot + label, current / target
+ * value and a slim progress bar. Three of these form the cohesive
+ * nutrition overview inside the dashboard hero.
+ */
+export function MacroStat({
   label,
   current,
   target,
-  unit,
   color,
   over = false,
-}: NutritionCardProps) {
+}: MacroStatProps) {
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <span className={cn("h-2 w-2 rounded-full", progressColors[color])} />
-          {label}
+    <div className="min-w-0">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", progressColors[color])} />
+        {label}
+      </p>
+      <p className="mt-1.5 truncate text-sm font-bold tabular-nums text-foreground">
+        <span className={cn(over && "text-red-600 dark:text-red-400")}>
+          {formatNumber(current)}
+        </span>{" "}
+        <span className="font-medium text-muted-foreground">
+          / {formatNumber(target)} г
         </span>
-        <span className="text-sm tabular-nums text-muted-foreground">
-          <span
-            className={cn(
-              "font-semibold",
-              over ? "text-red-600 dark:text-red-400" : "text-foreground",
-            )}
-          >
-            {formatNumber(current)}
-          </span>{" "}
-          / {formatNumber(target)} {unit}
-        </span>
-      </div>
+      </p>
       <div className="mt-2">
         <ProgressBar value={current} max={target} color={color} />
       </div>

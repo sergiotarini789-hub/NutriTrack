@@ -5,8 +5,8 @@ import { Plus } from "lucide-react";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { DailyNutrition } from "@/components/nutrition/DailyNutrition";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { MEALS } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
 import { formatFullDate, todayKey } from "@/lib/dates";
@@ -20,7 +20,11 @@ import {
 import type { MealType } from "@/lib/types";
 import { MealCard } from "./MealCard";
 
-/** "Сегодня" dashboard driven by real diary data. */
+/**
+ * "Сегодня" screen: calorie hero with the day's macro overview,
+ * followed by the unified diary of meals. All values come from the
+ * real diary entries.
+ */
 export function Dashboard() {
   const { ready, entries, targets, findFood } = useDiary();
   const [addOpen, setAddOpen] = useState(false);
@@ -35,19 +39,28 @@ export function Dashboard() {
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Сегодня" subtitle={formatFullDate(date)} />
+    <div className="space-y-5 sm:space-y-6">
+      <div className="mb-1">
+        <p className="text-sm font-medium text-primary">
+          {formatFullDate(date)}
+        </p>
+        <h1 className="mt-0.5 text-[26px] font-bold tracking-tight text-foreground lg:text-3xl">
+          Сегодня
+        </h1>
+      </div>
 
       <DailyNutrition totals={totals} targets={targets} />
 
       <section>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Приёмы пищи</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            Приёмы пищи
+          </h2>
           <span className="text-sm tabular-nums text-muted-foreground">
             Итого: {formatNumber(totals.calories)} ккал
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        <Card className="divide-y divide-border/70 px-1.5 py-1.5 sm:px-2">
           {MEALS.map((meal) => (
             <MealCard
               key={meal.id}
@@ -64,7 +77,7 @@ export function Dashboard() {
               }}
             />
           ))}
-        </div>
+        </Card>
       </section>
 
       <Button
