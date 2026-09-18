@@ -345,3 +345,33 @@ export interface FoodRepository {
   updateUserProduct(id: string, changes: UserProductUpdate): UserProduct | undefined;
   deleteUserProduct(id: string): boolean;
 }
+
+/* ------------------------------------------------------------------ */
+/* External barcode lookup (Stage 7)                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Result of resolving a barcode across the local repository and an
+ * external source (Open Food Facts). "invalid" means the input is not
+ * a usable barcode; "not_found" means the source explicitly reports
+ * the product does not exist; "error" means a technical failure —
+ * the product may exist, so it must not be reported as missing;
+ * "incomplete" means the product exists but has no nutrition data.
+ */
+export type BarcodeLookupResult =
+  | { status: "found"; product: FoodProduct; origin: "local" | "external" }
+  | { status: "not_found" }
+  | { status: "incomplete"; name?: string; brand?: string }
+  | { status: "error" }
+  | { status: "invalid" };
+
+/**
+ * Async barcode lookup against one external source. Implemented by
+ * OpenFoodFactsRepository (which talks to our server proxy route —
+ * never to the external API directly from the browser). The local
+ * FoodRepository stays synchronous; external lookups are orchestrated
+ * separately (see the diary provider's lookupBarcode).
+ */
+export interface ExternalFoodSource {
+  getByBarcode(barcode: string): Promise<BarcodeLookupResult>;
+}

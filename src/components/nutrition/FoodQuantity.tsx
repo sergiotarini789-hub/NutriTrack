@@ -13,6 +13,7 @@ import {
   minForUnit,
   nutritionForServing,
   parseAmountInput,
+  sourceLabelOf,
   stepForUnit,
   toBaseAmount,
   unitLabelFor,
@@ -80,17 +81,41 @@ export function FoodQuantity({
     <div>
       {/* Product header */}
       <div className="flex items-center gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Icon className="h-6 w-6" />
-        </span>
+        {food.imageUrl ? (
+          // External product photo (Open Food Facts); falls back to the
+          // category icon when the image fails to load.
+          <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-6 w-6" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={food.imageUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          </span>
+        ) : (
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-6 w-6" />
+          </span>
+        )}
         <div className="min-w-0">
           <p className="truncate text-lg font-bold tracking-tight text-foreground">
             {food.name}
           </p>
           <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
-            {category.name} · {formatNumber(food.calories)} ккал / 100{" "}
-            {baseUnitLabel(food)}
+            {category.name}
+            {food.brand ? ` · ${food.brand}` : ""} ·{" "}
+            {formatNumber(food.calories)} ккал / 100 {baseUnitLabel(food)}
           </p>
+          {food.type === "branded" && (
+            <p className="mt-px truncate text-xs text-muted-foreground/80">
+              Источник: {sourceLabelOf(food)}
+            </p>
+          )}
         </div>
       </div>
 

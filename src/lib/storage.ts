@@ -4,6 +4,7 @@ import { normalizeBarcode } from "./barcode";
 import type {
   ActivityLevel,
   BaseUnit,
+  BrandedProduct,
   FoodCategoryId,
   FoodEntry,
   FoodProductType,
@@ -30,6 +31,12 @@ export const STORAGE_KEYS = {
   units: `${PREFIX}:units`,
   onboarded: `${PREFIX}:onboarded`,
   userFoods: `${PREFIX}:user-foods`,
+  /**
+   * Normalized Open Food Facts products fetched earlier (Stage 7).
+   * Additive key: never renames or replaces existing data; entries
+   * reference these products by id ("off-<barcode>").
+   */
+  offProducts: `${PREFIX}:off-products`,
 } as const;
 
 export type Units = "metric" | "imperial";
@@ -286,6 +293,142 @@ export function loadUserFoods(): UserProduct[] {
 
 export function saveUserFoods(items: UserProduct[]): void {
   writeJson(STORAGE_KEYS.userFoods, items);
+}
+
+/* ---------------------- Open Food Facts products -------------------- */
+
+/** Categories an external branded product may use ("user" is reserved). */
+const BRANDED_CATEGORY_IDS: readonly FoodCategoryId[] = [
+  "cereals",
+  "pasta",
+  "meat",
+  "poultry",
+  "fish",
+  "eggs",
+  "dairy",
+  "vegetables",
+  "fruits",
+  "berries",
+  "bakery",
+  "nuts",
+  "legumes",
+  "oils",
+  "drinks",
+  "sweets",
+  "ready",
+];
+
+/**
+ * Parses a stored Open Food Facts product (normalized BrandedProduct
+ * as produced by the server route). Tolerant like parseUserProduct:
+ * malformed records are dropped, not thrown. Only records that really
+ * come from Open Food Facts are accepted — nothing else may live in
+ * this store.
+ */
+function parseOffProduct(value: unknown): BrandedProduct | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== "string" || !value.id) return null;
+  if (typeof value.name !== "string" || !value.name.trim()) return null;
+  if (value.type !== "branded" || value.sourceType !== "open_food_facts") {
+    return null;
+  }
+  const calories = nonNegativeNumber(value.calories);
+  if (calories <= 0 && value.calories !== 0) return null;
+
+  const baseUnit =
+    typeof value.baseUnit === "string" && BASE_UNITS.includes(value.baseUnit as BaseUnit)
+      ? (value.baseUnit as BaseUnit)
+      : "g";
+
+  const rawUnits = Array.isArray(value.units) ? value.units : [];
+  const units = rawUnits
+    .map(parseUnit)
+    .filter((unit): unit is FoodUnit => unit !== null)
+    .filter((unit) => unit.key !== baseUnit);
+  units.push(baseUnit === "ml" ? ML_UNIT : G_UNIT);
+
+  const rawServings = Array.isArray(value.servingOptions)
+    ? value.servingOptions
+    : [];
+  const servingOptions = rawServings
+    .map(parseServing)
+    .filter((serving): serving is FoodServing => serving !== null);
+
+  const defaultServing =
+    parseServing(value.defaultServing) ??
+    ({ amount: 100, unitKey: baseUnit } as FoodServing);
+
+  const category =
+    typeof value.category === "string" &&
+    BRANDED_CATEGORY_IDS.includes(value.category as FoodCategoryId)
+      ? (value.category as FoodCategoryId)
+      : "ready";
+
+  return {
+    type: "branded",
+    id: value.id,
+    name: value.name.trim().slice(0, 120),
+    category,
+    aliases: [],
+    calories,
+    protein: nonNegativeNumber(value.protein),
+    fat: nonNegativeNumber(value.fat),
+    carbs: nonNegativeNumber(value.carbs),
+    baseUnit,
+    units,
+    servingOptions,
+    defaultServing,
+    sourceType: "open_food_facts",
+    sourceName:
+      typeof value.sourceName === "string" ? value.sourceName : undefined,
+    sourceId: typeof value.sourceId === "string" ? value.sourceId : undefined,
+    isBranded: true,
+    brand:
+      typeof value.brand === "string" && value.brand.trim()
+        ? value.brand.trim().slice(0, 80)
+        : undefined,
+    manufacturer:
+      typeof value.manufacturer === "string" && value.manufacturer.trim()
+        ? value.manufacturer.trim().slice(0, 80)
+        : undefined,
+    barcode: normalizeBarcode(
+      typeof value.barcode === "string" ? value.barcode : undefined,
+    ),
+    ingredients:
+      typeof value.ingredients === "string" && value.ingredients.trim()
+        ? value.ingredients.trim().slice(0, 500)
+        : undefined,
+    packageSize: positiveNumber(value.packageSize) ?? undefined,
+    packageUnit:
+      typeof value.packageUnit === "string" && value.packageUnit.trim()
+        ? value.packageUnit.trim()
+        : undefined,
+    imageUrl:
+      typeof value.imageUrl === "string" && /^https?:\/\//.test(value.imageUrl)
+        ? value.imageUrl
+        : undefined,
+    verified: value.verified === true,
+    createdAt:
+      typeof value.createdAt === "string" && value.createdAt
+        ? value.createdAt
+        : undefined,
+    updatedAt:
+      typeof value.updatedAt === "string" && value.updatedAt
+        ? value.updatedAt
+        : undefined,
+  };
+}
+
+export function loadOffProducts(): BrandedProduct[] {
+  const raw = readJson<unknown>(STORAGE_KEYS.offProducts);
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(parseOffProduct)
+    .filter((item): item is BrandedProduct => item !== null);
+}
+
+export function saveOffProducts(items: BrandedProduct[]): void {
+  writeJson(STORAGE_KEYS.offProducts, items);
 }
 
 /* ------------------------------ Profile ------------------------------ */

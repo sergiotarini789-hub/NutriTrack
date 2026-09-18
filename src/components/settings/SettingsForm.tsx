@@ -270,6 +270,12 @@ export function SettingsForm() {
             </div>
           </SettingRow>
         </SettingsSection>
+
+        <p className="mt-6 px-1 text-xs leading-relaxed text-muted-foreground">
+          Данные о брендовых продуктах предоставлены Open Food Facts
+          (openfoodfacts.org) — открытой базой данных продуктов под
+          лицензией ODbL.
+        </p>
       </div>
     </>
   );

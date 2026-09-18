@@ -9,12 +9,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { normalizeBarcode } from "./barcode";
+import { findOffProductById, upsertOffProduct } from "./off-products";
+import { OpenFoodFactsRepository } from "./openfoodfacts-repository";
 import { DEFAULT_PROFILE, DEFAULT_TARGETS } from "./app-data";
 import { todayKey } from "./dates";
 import { LocalFoodRepository } from "./food-repository";
 import {
   STORAGE_KEYS,
   loadEntries,
+  loadOffProducts,
   loadProfile,
   loadTargets,
   loadUserFoods,
@@ -23,6 +27,8 @@ import {
   saveTargets,
 } from "./storage";
 import type {
+  BarcodeLookupResult,
+  BrandedProduct,
   FoodEntry,
   FoodProduct,
   FoodProductType,
@@ -62,8 +68,16 @@ interface DiaryContextValue {
   /** Built-in and user-created products (via the local repository). */
   allFoods: FoodProduct[];
   userFoods: UserProduct[];
+  /** Normalized Open Food Facts products fetched earlier. */
+  offProducts: BrandedProduct[];
   /** Resolves any product (generic / branded / user) by id. */
   findFood: (id: string) => FoodProduct | undefined;
+  /**
+   * Resolves a barcode: local repository (user products win) → cached
+   * OFF products → Open Food Facts via the server proxy. External
+   * failure never breaks local lookups.
+   */
+  lookupBarcode: (barcode: string) => Promise<BarcodeLookupResult>;
   addEntry: (input: AddEntryInput) => void;
   updateEntry: (id: string, changes: UpdateEntryInput) => void;
   removeEntry: (id: string) => void;
@@ -90,12 +104,14 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   );
   const [profile, setProfileState] = useState<UserProfile>(DEFAULT_PROFILE);
   const [userFoods, setUserFoods] = useState<UserProduct[]>([]);
+  const [offProducts, setOffProducts] = useState<BrandedProduct[]>([]);
 
   useEffect(() => {
     setEntries(loadEntries());
     setTargetsState(loadTargets());
     setProfileState(loadProfile());
     setUserFoods(loadUserFoods());
+    setOffProducts(loadOffProducts());
     setReady(true);
 
     function onStorage(event: StorageEvent) {
@@ -103,6 +119,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       else if (event.key === STORAGE_KEYS.targets) setTargetsState(loadTargets());
       else if (event.key === STORAGE_KEYS.profile) setProfileState(loadProfile());
       else if (event.key === STORAGE_KEYS.userFoods) setUserFoods(loadUserFoods());
+      else if (event.key === STORAGE_KEYS.offProducts) {
+        setOffProducts(loadOffProducts());
+      }
     }
 
     window.addEventListener("storage", onStorage);
@@ -114,18 +133,62 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     [userFoods],
   );
 
+  const offRepository = useMemo(() => new OpenFoodFactsRepository(), []);
+
   const allFoods = useMemo(() => repository.getAll(), [repository]);
 
   const findFood = useCallback(
-    (id: string) => repository.getById(id),
+    (id: string) => repository.getById(id) ?? findOffProductById(id),
     [repository],
+  );
+
+  /**
+   * Barcode resolution (Stage 7 fallback model):
+   *   local repository (user products win) → cached OFF products →
+   *   Open Food Facts (server proxy) → the UI offers manual entry.
+   *
+   * Deterministic rule: a UserProduct with the same barcode ALWAYS
+   * wins over external data — stale OFF records can never override
+   * something the user created explicitly.
+   */
+  const lookupBarcode = useCallback(
+    async (barcode: string): Promise<BarcodeLookupResult> => {
+      const normalized = normalizeBarcode(barcode);
+      if (!normalized) return { status: "invalid" };
+
+      // 1. Local: built-ins and user products (user wins by construction).
+      const local = repository.getByBarcode(normalized);
+      if (local) return { status: "found", product: local, origin: "local" };
+
+      // 2. Previously fetched external products (offline-friendly).
+      const cached = offProducts.find(
+        (product) => product.barcode === normalized,
+      );
+      if (cached) return { status: "found", product: cached, origin: "local" };
+
+      // 3. External lookup through the server proxy route.
+      const remote = await offRepository.getByBarcode(normalized);
+      if (remote.status === "found") {
+        upsertOffProduct(remote.product as BrandedProduct);
+        setOffProducts(loadOffProducts());
+        // A user product created meanwhile still wins.
+        const userProduct = repository.getByBarcode(normalized);
+        if (userProduct) {
+          return { status: "found", product: userProduct, origin: "local" };
+        }
+        return remote;
+      }
+      return remote;
+    },
+    [repository, offRepository, offProducts],
   );
 
   const addEntry = useCallback(
     (input: AddEntryInput) => {
       setEntries((previous) => {
         // Stamp the product type and creation time on new entries.
-        const food = repository.getById(input.foodId);
+        // findFood covers generic, user AND cached external products.
+        const food = findFood(input.foodId);
         const foodType: FoodProductType | undefined = food?.type;
         const entry: FoodEntry = {
           id: createId("entry"),
@@ -142,7 +205,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
         return next;
       });
     },
-    [repository],
+    [findFood],
   );
 
   const updateEntry = useCallback((id: string, changes: UpdateEntryInput) => {
@@ -214,7 +277,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       profile,
       allFoods,
       userFoods,
+      offProducts,
       findFood,
+      lookupBarcode,
       addEntry,
       updateEntry,
       removeEntry,
@@ -231,7 +296,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       profile,
       allFoods,
       userFoods,
+      offProducts,
       findFood,
+      lookupBarcode,
       addEntry,
       updateEntry,
       removeEntry,

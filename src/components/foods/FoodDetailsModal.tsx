@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -73,6 +73,11 @@ function FoodDetails({ food }: { food: FoodItem }) {
   const Icon = categoryIcon(food.category);
   const category = getCategory(food.category);
   const isUser = food.type === "user";
+  const isBranded = food.type === "branded";
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => {
+    setImageFailed(false);
+  }, [food.id]);
   const extraUnits = food.units.filter(
     (unit) => unit.key !== food.baseUnit,
   );
@@ -81,9 +86,21 @@ function FoodDetails({ food }: { food: FoodItem }) {
     <div>
       {/* Product header */}
       <div className="flex items-center gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Icon className="h-6 w-6" />
-        </span>
+        {food.imageUrl && !imageFailed ? (
+          // External product photo (Open Food Facts).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={food.imageUrl}
+            alt={food.name}
+            loading="lazy"
+            className="h-12 w-12 shrink-0 rounded-2xl object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-6 w-6" />
+          </span>
+        )}
         <div className="min-w-0">
           <p className="truncate text-lg font-bold tracking-tight text-foreground">
             {food.name}
@@ -94,12 +111,16 @@ function FoodDetails({ food }: { food: FoodItem }) {
             </span>
             <span
               className={
-                isUser
+                isUser || isBranded
                   ? "rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary"
                   : "rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
               }
             >
-              {isUser ? "Ваш продукт" : "Справочное значение"}
+              {isUser
+                ? "Ваш продукт"
+                : isBranded
+                  ? sourceLabelOf(food)
+                  : "Справочное значение"}
             </span>
           </div>
         </div>

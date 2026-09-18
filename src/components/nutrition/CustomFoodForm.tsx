@@ -12,24 +12,34 @@ import type { FoodItem } from "@/lib/types";
 interface CustomFoodFormProps {
   /** Called with the created food. */
   onCreated: (food: FoodItem) => void;
+  /** Prefill from a barcode lookup that found no usable product. */
+  initialBarcode?: string;
+  initialName?: string;
+  initialBrand?: string;
 }
 
 /**
  * Form for creating a custom product. Values are per 100 g / 100 ml;
- * an optional portion size adds a "порция" serving unit.
+ * an optional portion size adds a "порция" serving unit. Can be
+ * prefilled when the user arrives from an unsuccessful barcode lookup.
  */
-export function CustomFoodForm({ onCreated }: CustomFoodFormProps) {
+export function CustomFoodForm({
+  onCreated,
+  initialBarcode,
+  initialName,
+  initialBrand,
+}: CustomFoodFormProps) {
   const { addUserFood } = useDiary();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName ?? "");
   const [baseUnit, setBaseUnit] = useState<"g" | "ml">("g");
   const [calories, setCalories] = useState("");
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
   const [portion, setPortion] = useState("");
-  const [brand, setBrand] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [isBranded, setIsBranded] = useState(false);
+  const [brand, setBrand] = useState(initialBrand ?? "");
+  const [barcode, setBarcode] = useState(initialBarcode ?? "");
+  const [isBranded, setIsBranded] = useState(Boolean(initialBrand));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState(false);
 
