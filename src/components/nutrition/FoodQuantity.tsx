@@ -8,6 +8,7 @@ import { formatNumber } from "@/lib/format";
 import {
   baseUnitLabel,
   convertAmount,
+  hasNutrition,
   formatAmountInUnit,
   formatServing,
   minForUnit,
@@ -109,7 +110,9 @@ export function FoodQuantity({
           <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
             {category.name}
             {food.brand ? ` · ${food.brand}` : ""} ·{" "}
-            {formatNumber(food.calories)} ккал / 100 {baseUnitLabel(food)}
+            {hasNutrition(food)
+              ? `${formatNumber(food.calories ?? 0)} ккал / 100 ${baseUnitLabel(food)}`
+              : "нет данных о КБЖУ"}
           </p>
           {food.type === "branded" && (
             <p className="mt-px truncate text-xs text-muted-foreground/80">
@@ -232,12 +235,19 @@ export function FoodQuantity({
             </span>
           )}
         </p>
-        <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-primary">
-          {formatNumber(nutrition?.calories ?? 0)}
-          <span className="ml-1.5 text-sm font-medium text-muted-foreground">
-            ккал
-          </span>
-        </p>
+        {hasNutrition(food) ? (
+          <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-primary">
+            {formatNumber(nutrition?.calories ?? 0)}
+            <span className="ml-1.5 text-sm font-medium text-muted-foreground">
+              ккал
+            </span>
+          </p>
+        ) : (
+          <p className="mt-1 text-[15px] font-semibold text-muted-foreground">
+            Нет данных о КБЖУ
+          </p>
+        )}
+        {hasNutrition(food) && (
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div>
             <p className="text-xs text-muted-foreground">Белки</p>
@@ -258,6 +268,7 @@ export function FoodQuantity({
             </p>
           </div>
         </div>
+        )}
       </div>
 
       {/* Meal picker (add-food flow) */}

@@ -38,11 +38,11 @@ export function FoodCard({ food, onClick }: FoodCardProps) {
         </p>
         <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
           <span className="font-semibold text-protein">Б</span>{" "}
-          {formatNumber(food.protein)} ·{" "}
+          {formatNumber(food.protein ?? 0)} ·{" "}
           <span className="font-semibold text-fat">Ж</span>{" "}
-          {formatNumber(food.fat)} ·{" "}
+          {formatNumber(food.fat ?? 0)} ·{" "}
           <span className="font-semibold text-carbs">У</span>{" "}
-          {formatNumber(food.carbs)}
+          {formatNumber(food.carbs ?? 0)}
         </p>
         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
           {sourceLabel}
@@ -51,7 +51,7 @@ export function FoodCard({ food, onClick }: FoodCardProps) {
 
       <div className="shrink-0 text-right">
         <p className="text-lg font-bold tabular-nums tracking-tight text-foreground">
-          {formatNumber(food.calories)}
+          {formatNumber(food.calories ?? 0)}
         </p>
         <p className="text-[11px] text-muted-foreground">
           ккал / 100 {baseUnitLabel(food)}

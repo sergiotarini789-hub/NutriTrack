@@ -244,6 +244,196 @@ export const NOT_FOUND_V3 = {
   warnings: [],
 } as const;
 
+/* --------------------- REAL: text search (8B) --------------------- */
+
+/**
+ * REAL response of the official OFF Search API
+ * (GET /cgi/search.pl?search_terms=даниссимо&search_simple=1&action=
+ * process&json=1&fields=…&lc=ru&cc=ru, captured 2026-09-18). Note the
+ * search envelope differs from the v3 product endpoint: count/page/
+ * page_size/products. Products carry the same field names as v3, so
+ * the existing normalizer applies. `page` arrives as a STRING.
+ */
+export const SEARCH_DANISSIMO = {
+  count: 42,
+  page: "1",
+  page_count: 2,
+  page_size: 2,
+  skip: 0,
+  products: [
+    {
+      brands: "Даниссимо",
+      categories_tags: [
+        "en:dairies",
+        "en:fermented-foods",
+        "en:desserts",
+        "en:fermented-milk-products",
+        "en:dairy-desserts",
+        "en:fermented-dairy-desserts",
+        "en:yogurts",
+        "ru:9 % и хрустящие шарики в шоколаде",
+        "ru:Йогурт с массовой долей жира 6",
+      ],
+      code: "4600605019351",
+      image_front_url:
+        "https://images.openfoodfacts.org/images/products/460/060/501/9351/front_ru.16.400.jpg",
+      nutriments: {
+        "added-sugars": 0,
+        "added-sugars_100g": 0,
+        "added-sugars_modifier": "~",
+        "added-sugars_unit": "g",
+        "added-sugars_value": 0,
+        carbohydrates: "11.9",
+        carbohydrates_100g: 11.9,
+        carbohydrates_unit: "g",
+        carbohydrates_value: "11.9",
+        energy: 514,
+        "energy-kcal": 123,
+        "energy-kcal_100g": 123,
+        "energy-kcal_unit": "kcal",
+        "energy-kcal_value": 123,
+        "energy-kj": 514,
+        "energy-kj_100g": 514,
+        "energy-kj_unit": "kJ",
+        "energy-kj_value": 514,
+        energy_100g: 514,
+        energy_unit: "kJ",
+        energy_value: 514,
+        fat: "6.9",
+        fat_100g: 6.9,
+        fat_unit: "g",
+        fat_value: "6.9",
+        "fruits-vegetables-legumes-estimate-from-ingredients_100g": 0,
+        "fruits-vegetables-nuts-estimate-from-ingredients_100g": 0,
+        "nova-group": 4,
+        "nova-group_100g": 4,
+        "nova-group_serving": 4,
+        "nova-group_unit": "",
+        "nova-group_value": 4,
+        proteins: "3.3",
+        proteins_100g: 3.3,
+        proteins_unit: "g",
+        proteins_value: "3.3",
+      },
+      nutrition_data: "on",
+      nutrition_data_per: "100g",
+      nutrition_data_prepared_per: "100g",
+      product_name: "Йогурт с шариками в шоколаде",
+      product_name_ru: "Йогурт с шариками в шоколаде",
+      product_quantity: 105,
+      product_quantity_unit: "g",
+      quantity: "105 г",
+      serving_quantity: null,
+    },
+    {
+      brands: "Danone",
+      categories_tags: [
+        "en:dairies",
+        "en:fermented-foods",
+        "en:desserts",
+        "en:fermented-milk-products",
+        "en:dairy-desserts",
+        "en:fermented-dairy-desserts",
+        "en:yogurts",
+        "ru:9 % и драже",
+        "ru:9 % и драже Хрустящие шарики с ягодным вкусом",
+        "ru:Йогурт «Даниссимо Фантазия» с массовой долей жира 6",
+        "ru:Йогурт с массовой долей жира 6",
+      ],
+      code: "4600605021781",
+      image_front_url:
+        "https://images.openfoodfacts.org/images/products/460/060/502/1781/front_ru.27.400.jpg",
+      nutriments: {
+        carbohydrates: "11.6",
+        carbohydrates_100g: 11.6,
+        carbohydrates_unit: "g",
+        carbohydrates_value: "11.6",
+        energy: 505,
+        "energy-kcal": "120.9",
+        "energy-kcal_100g": 120.9,
+        "energy-kcal_modifier": "~",
+        "energy-kcal_unit": "kcal",
+        "energy-kcal_value": "120.9",
+        "energy-kj": 505,
+        "energy-kj_100g": 505,
+        "energy-kj_unit": "kJ",
+        "energy-kj_value": 505,
+        energy_100g: 505,
+        energy_unit: "kJ",
+        energy_value: 505,
+        fat: "6.9",
+        fat_100g: 6.9,
+        fat_unit: "g",
+        fat_value: "6.9",
+        proteins: "3.1",
+        proteins_100g: 3.1,
+        proteins_unit: "g",
+        proteins_value: "3.1",
+        sucrose: 7,
+        sucrose_100g: 7,
+        sucrose_unit: "g",
+        sucrose_value: 7,
+      },
+      nutrition_data: "on",
+      nutrition_data_per: "100g",
+      nutrition_data_prepared_per: "100g",
+      product_name:
+        "Даниссимо Фантазия Хрустящие шарики с ягодным вкусом 105г",
+      product_name_ru:
+        "Даниссимо Фантазия Хрустящие шарики с ягодным вкусом 105г",
+      product_quantity: 105,
+      product_quantity_unit: "g",
+      quantity: "105 г (93 г йогурт и 12 г наполнитель)",
+    },
+  ],
+} as const;
+
+/**
+ * SYNTHETIC search page exercising the guard rails: a nameless record
+ * (skipped), a nutritionless record (kept, unknown nutrition), a
+ * duplicate barcode (kept once), a record with an unusable code
+ * (skipped) and a full record.
+ */
+export const SEARCH_EDGE_CASES = {
+  count: 5,
+  page: 1,
+  page_size: 20,
+  skip: 0,
+  products: [
+    {
+      code: "4601111111111",
+      brands: "Никак",
+      // No product_name / product_name_ru / generic_name → skipped.
+    },
+    {
+      code: "4602222222222",
+      product_name: "Продукт без КБЖУ",
+      brands: "Бренд",
+      categories_tags: ["en:sodas"],
+      // No nutriments at all → kept with unknown nutrition.
+    },
+    {
+      code: "4603333333333",
+      product_name: "Дубликат один",
+      brands: "Бренд",
+      nutriments: { "energy-kcal_100g": 50 },
+      nutrition_data_per: "100g",
+    },
+    {
+      code: "4603333333333",
+      product_name: "Дубликат два",
+      brands: "Бренд",
+      nutriments: { "energy-kcal_100g": 51 },
+      nutrition_data_per: "100g",
+    },
+    {
+      code: "not-a-code",
+      product_name: "Сломанный код",
+      brands: "Бренд",
+    },
+  ],
+} as const;
+
 /* ---------------------------- SYNTHETIC ---------------------------- */
 
 function variant(

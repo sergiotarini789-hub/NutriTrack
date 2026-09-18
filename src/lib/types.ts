@@ -152,14 +152,18 @@ export interface FoodProductBase {
   category: FoodCategoryId;
   /** Alternative search terms. */
   aliases: string[];
-  /** Calories per 100 g / 100 ml. */
-  calories: number;
-  /** Protein (g) per 100 g / 100 ml. */
-  protein: number;
-  /** Fat (g) per 100 g / 100 ml. */
-  fat: number;
-  /** Carbs (g) per 100 g / 100 ml. */
-  carbs: number;
+  /**
+   * Calories per 100 g / 100 ml. `undefined` means UNKNOWN (an external
+   * product without nutrition data) — never a real zero. Built-in and
+   * user products always define it (see GenericFood/UserProduct).
+   */
+  calories?: number;
+  /** Protein (g) per 100 g / 100 ml; undefined = unknown (see above). */
+  protein?: number;
+  /** Fat (g) per 100 g / 100 ml; undefined = unknown (see above). */
+  fat?: number;
+  /** Carbs (g) per 100 g / 100 ml; undefined = unknown (see above). */
+  carbs?: number;
   baseUnit: BaseUnit;
   /** Units selectable for this food; the base unit is always included. */
   units: FoodUnit[];
@@ -198,6 +202,11 @@ export interface FoodProductBase {
 export interface GenericFood extends FoodProductBase {
   type: "generic";
   sourceType: "generic";
+  /** Local reference foods always carry complete nutrition. */
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
   isBranded: false;
 }
 

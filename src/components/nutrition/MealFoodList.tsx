@@ -9,6 +9,7 @@ import { formatNumber } from "@/lib/format";
 import {
   formatEntryAmount,
   getFoodUnit,
+  hasNutrition,
   minForUnit,
   nutritionForServing,
   parseAmountInput,
@@ -41,7 +42,9 @@ export function MealFoodList({ items }: MealFoodListProps) {
     ).calories;
     setToast({
       message: "Удалено",
-      detail: `${item.food.name} · −${formatNumber(kcal)} ккал`,
+      detail: hasNutrition(item.food)
+        ? `${item.food.name} · −${formatNumber(kcal)} ккал`
+        : item.food.name,
     });
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }
@@ -115,10 +118,12 @@ function MealFoodRow({ item, onEdit, onDeleted }: MealFoodRowProps) {
             {food.name}
           </p>
           <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-            {formatNumber(nutrition.calories)}
-            <span className="ml-1 text-[11px] font-medium text-muted-foreground">
-              ккал
-            </span>
+            {hasNutrition(food) ? formatNumber(nutrition.calories) : "—"}
+            {hasNutrition(food) && (
+              <span className="ml-1 text-[11px] font-medium text-muted-foreground">
+                ккал
+              </span>
+            )}
           </p>
         </div>
 

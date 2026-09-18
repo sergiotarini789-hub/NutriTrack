@@ -47,11 +47,24 @@ export function nutritionOf(
   food: Pick<FoodProduct, "calories" | "protein" | "fat" | "carbs">,
 ): NutritionInfo {
   return {
-    calories: food.calories,
-    protein: food.protein,
-    fat: food.fat,
-    carbs: food.carbs,
+    calories: food.calories ?? 0,
+    protein: food.protein ?? 0,
+    fat: food.fat ?? 0,
+    carbs: food.carbs ?? 0,
   };
+}
+
+/**
+ * True when the product carries usable nutrition data. External (OFF)
+ * products may exist without any nutrition — the UI must show
+ * «Нет данных о КБЖУ» for those instead of pretending the values are 0.
+ * The calories field decides: the OFF parser only produces products
+ * with complete nutrition (all fields set) or none at all.
+ */
+export function hasNutrition(
+  food: Pick<FoodProduct, "calories" | "protein" | "fat" | "carbs">,
+): boolean {
+  return food.calories !== undefined;
 }
 
 /** Source metadata of a product as a structured FoodSource. */
@@ -177,17 +190,21 @@ export function formatServing(food: FoodProduct, serving: FoodServing): string {
 /* Nutrition                                                           */
 /* ------------------------------------------------------------------ */
 
-/** Nutrition of a food scaled to the given amount in base units (g/ml). */
+/**
+ * Nutrition of a food scaled to the given amount in base units (g/ml).
+ * Unknown values (undefined — external products without data) count as
+ * 0 in the arithmetic; the UI labels such products via hasNutrition().
+ */
 export function nutritionForBaseAmount(
   food: Pick<FoodProduct, "calories" | "protein" | "fat" | "carbs">,
   baseAmount: number,
 ): NutritionInfo {
   const k = baseAmount / 100;
   return {
-    calories: round1(food.calories * k),
-    protein: round1(food.protein * k),
-    fat: round1(food.fat * k),
-    carbs: round1(food.carbs * k),
+    calories: round1((food.calories ?? 0) * k),
+    protein: round1((food.protein ?? 0) * k),
+    fat: round1((food.fat ?? 0) * k),
+    carbs: round1((food.carbs ?? 0) * k),
   };
 }
 

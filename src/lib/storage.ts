@@ -332,8 +332,24 @@ function parseOffProduct(value: unknown): BrandedProduct | null {
   if (value.type !== "branded" || value.sourceType !== "open_food_facts") {
     return null;
   }
-  const calories = nonNegativeNumber(value.calories);
-  if (calories <= 0 && value.calories !== 0) return null;
+  // Stage 8B: products without any nutrition data are valid — all four
+  // fields are absent together (unknown, never a fake zero). A record
+  // with SOME nutrition must still carry a valid calories number.
+  const nutritionAbsent =
+    value.calories === undefined &&
+    value.protein === undefined &&
+    value.fat === undefined &&
+    value.carbs === undefined;
+  if (!nutritionAbsent) {
+    if (
+      typeof value.calories !== "number" ||
+      !Number.isFinite(value.calories) ||
+      value.calories < 0
+    ) {
+      return null;
+    }
+  }
+  const calories = nutritionAbsent ? undefined : (value.calories as number);
 
   const baseUnit =
     typeof value.baseUnit === "string" && BASE_UNITS.includes(value.baseUnit as BaseUnit)
@@ -371,9 +387,11 @@ function parseOffProduct(value: unknown): BrandedProduct | null {
     category,
     aliases: [],
     calories,
-    protein: nonNegativeNumber(value.protein),
-    fat: nonNegativeNumber(value.fat),
-    carbs: nonNegativeNumber(value.carbs),
+    // With nutrition: missing macros flatten to 0 (existing rule).
+    // Without nutrition: all stay undefined — unknown ≠ zero.
+    protein: nutritionAbsent ? undefined : nonNegativeNumber(value.protein),
+    fat: nutritionAbsent ? undefined : nonNegativeNumber(value.fat),
+    carbs: nutritionAbsent ? undefined : nonNegativeNumber(value.carbs),
     baseUnit,
     units,
     servingOptions,

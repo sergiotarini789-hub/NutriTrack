@@ -18,6 +18,7 @@ import {
   UserRound,
   Wheat,
 } from "lucide-react";
+import { normalizeSearchText } from "./hybrid-search";
 import type {
   FoodCategory,
   FoodCategoryId,
@@ -858,8 +859,14 @@ export function getFoodById(id: string): GenericFood | undefined {
 export const ALL_CATEGORY = "all" as const;
 
 /**
- * Filters foods by category and a free-text query. The query matches the
- * product name (prefix matches rank higher), aliases and category name.
+ * Filters foods by category and a free-text query (Stage 8B ranking).
+ *
+ * Matching normalizes case, whitespace, ё→е and common punctuation on
+ * both sides. Rank priority (lower score = higher):
+ *   0 exact product name · 1 exact brand · 2 name starts with query ·
+ *   3 brand starts with query · 4 alias starts with query ·
+ *   5 name/brand substring · 6 alias substring · 7 category name.
+ * Ties keep the input order (user products first by construction).
  */
 export function searchFoods(
   list: FoodProduct[],
@@ -871,26 +878,38 @@ export function searchFoods(
       ? list
       : list.filter((item) => item.category === categoryId);
 
-  const normalized = query.trim().toLowerCase();
+  const normalized = normalizeSearchText(query);
   if (!normalized) return byCategory;
 
   const scored: { item: FoodProduct; score: number }[] = [];
   for (const item of byCategory) {
-    const name = item.name.toLowerCase();
-    const brand = item.brand?.toLowerCase() ?? "";
+    const name = normalizeSearchText(item.name);
+    const brand = item.brand ? normalizeSearchText(item.brand) : "";
     let score: number | null = null;
-    if (name.startsWith(normalized)) {
+    if (name === normalized) {
       score = 0;
-    } else if (name.includes(normalized) || brand.includes(normalized)) {
+    } else if (brand && brand === normalized) {
       score = 1;
-    } else if (
-      item.aliases.some((alias) => alias.toLowerCase().includes(normalized))
-    ) {
+    } else if (name.startsWith(normalized)) {
       score = 2;
+    } else if (brand && brand.startsWith(normalized)) {
+      score = 3;
+    } else if (
+      item.aliases.some((alias) =>
+        normalizeSearchText(alias).startsWith(normalized),
+      )
+    ) {
+      score = 4;
+    } else if (name.includes(normalized) || brand.includes(normalized)) {
+      score = 5;
+    } else if (
+      item.aliases.some((alias) => normalizeSearchText(alias).includes(normalized))
+    ) {
+      score = 6;
     } else {
       const category = CATEGORY_BY_ID.get(item.category);
-      if (category && category.name.toLowerCase().includes(normalized)) {
-        score = 3;
+      if (category && normalizeSearchText(category.name).includes(normalized)) {
+        score = 7;
       }
     }
     if (score !== null) scored.push({ item, score });

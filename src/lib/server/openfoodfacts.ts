@@ -18,6 +18,7 @@
  * kJ→kcal fallback; nothing missing is ever invented.
  */
 
+import { normalizeBarcode } from "../barcode";
 import { G_UNIT, ML_UNIT } from "../food-data";
 import type {
   BrandedProduct,
@@ -25,7 +26,13 @@ import type {
   FoodServing,
   FoodUnit,
 } from "../types";
-import { OFF_CACHE_TTL, offBarcodeCache, offCacheKey } from "./off-cache";
+import {
+  OFF_CACHE_TTL,
+  offBarcodeCache,
+  offCacheKey,
+  offSearchCache,
+  offSearchCacheKey,
+} from "./off-cache";
 
 /* ------------------------------------------------------------------ */
 /* Configuration                                                       */
@@ -396,13 +403,19 @@ function codeMatches(returnedCode: unknown, normalizedBarcode: string): boolean 
  * Converts a v3 product response into the Stage 6 BrandedProduct model.
  *
  * Missing optional fields stay undefined — they are never invented.
- * Missing macros are flattened to 0 in the persisted model (the
- * parser's OffNutrition keeps them undefined; see parseOffNutrition),
- * matching how the existing model represents unspecified macros.
+ * Missing macros are flattened to 0 in the persisted model when the
+ * product HAS nutrition (the parser's OffNutrition keeps them
+ * undefined; see parseOffNutrition), matching how the existing model
+ * represents unspecified macros. When the product has NO energy data at
+ * all, the default behavior rejects it (barcode flow: "incomplete");
+ * text search (Stage 8B) passes allowMissingNutrition so the product
+ * can still be listed with undefined nutrition fields — unknown is
+ * never the same as a real 0.
  */
 export function normalizeOffProduct(
   raw: unknown,
   normalizedBarcode: string,
+  options?: { allowMissingNutrition?: boolean },
 ):
   | { ok: true; product: BrandedProduct }
   | {
@@ -441,12 +454,16 @@ export function normalizeOffProduct(
   };
 
   const nutrition = parseOffNutrition(p.nutriments, p.nutrition_data_per);
-  if (!nutrition) {
+  if (!nutrition && !options?.allowMissingNutrition) {
     // No kcal and no kJ: the energy value must not be invented.
     return { ok: false, reason: "no_nutrition", partial };
   }
 
-  const baseUnit = nutrition.baseUnit;
+  const baseUnit: "g" | "ml" = nutrition
+    ? nutrition.baseUnit
+    : p.nutrition_data_per === "100ml"
+      ? "ml"
+      : "g";
   const units: FoodUnit[] = [baseUnit === "ml" ? ML_UNIT : G_UNIT];
   const servingOptions: FoodServing[] =
     baseUnit === "ml"
@@ -508,11 +525,13 @@ export function normalizeOffProduct(
       name: partial.name ?? "Продукт без названия",
       category: mapOffCategory(p.categories_tags),
       aliases: [],
-      // Flat per-100 values; missing macros flatten to 0 (documented).
-      calories: nutrition.calories,
-      protein: nutrition.protein ?? 0,
-      fat: nutrition.fat ?? 0,
-      carbs: nutrition.carbs ?? 0,
+      // Flat per-100 values. With nutrition: missing macros flatten to
+      // 0 (documented). Without nutrition (search listing): all four
+      // stay undefined — "unknown", never a fake zero.
+      calories: nutrition?.calories,
+      protein: nutrition ? (nutrition.protein ?? 0) : undefined,
+      fat: nutrition ? (nutrition.fat ?? 0) : undefined,
+      carbs: nutrition ? (nutrition.carbs ?? 0) : undefined,
       baseUnit,
       units,
       servingOptions,
@@ -691,5 +710,188 @@ export async function lookupOffBarcode(
 /** Test helper: forget everything cached. */
 export function resetOffStateForTests(): void {
   offBarcodeCache.clear();
+  offSearchCache.clear();
   inFlight.clear();
+  inFlightSearch.clear();
+}
+
+/* ------------------------------------------------------------------ */
+/* Text search (Stage 8B)                                              */
+/* ------------------------------------------------------------------ */
+
+export type OffSearchResult =
+  | { status: "ok"; products: BrandedProduct[] }
+  | { status: "empty" }
+  | { status: "error"; reason?: string };
+
+/** Results per search page — enough to be useful, never the whole DB. */
+export const OFF_SEARCH_PAGE_SIZE = 20;
+
+/**
+ * True when the raw OFF product carries a usable name. Search listings
+ * skip nameless records (the barcode flow still shows them with a
+ * placeholder — different feature, kept unchanged).
+ */
+export function hasOffUsableName(rawProduct: unknown): boolean {
+  if (typeof rawProduct !== "object" || rawProduct === null) return false;
+  return bestName(rawProduct as Record<string, unknown>) !== undefined;
+}
+
+/**
+ * Builds the OFF text-search request. The official full-text Search
+ * API is `GET /cgi/search.pl` (documented Search API; the v3
+ * `/api/v3/search` action is not available for GET full-text queries —
+ * verified live 2026-09-18: it answers invalid_api_action, and the v3
+ * OpenAPI remains WIP). Response products carry the SAME field names
+ * as the v3 product endpoint, so the existing normalization layer
+ * applies unchanged.
+ */
+export function buildOffSearchUrl(query: string, page: number): string {
+  const params = new URLSearchParams({
+    search_terms: query,
+    search_simple: "1",
+    action: "process",
+    json: "1",
+    fields: FIELDS,
+    page_size: String(OFF_SEARCH_PAGE_SIZE),
+    page: String(page),
+    lc: "ru",
+    cc: "ru",
+  });
+  return `${baseUrl()}/cgi/search.pl?${params.toString()}`;
+}
+
+/**
+ * Bare search-result product → the v3 response envelope the
+ * normalizer already understands.
+ */
+function asProductEnvelope(item: unknown): unknown {
+  if (typeof item !== "object" || item === null) return null;
+  const p = item as Record<string, unknown>;
+  return { status: "success", code: p.code, product: p };
+}
+
+/**
+ * Fetches and normalizes one page of OFF search results.
+ *
+ * Robustness rules mirror the barcode path: network failures, HTTP
+ * errors, invalid JSON and unexpected shapes become "error" — never
+ * "empty". Products that cannot be identified (no usable barcode code)
+ * or have no usable name are skipped, not guessed. Nutritionless
+ * products are kept (with undefined nutrition) so the UI can show
+ * «Нет данных о КБЖУ».
+ */
+export async function searchOffProducts(
+  query: string,
+  page: number,
+): Promise<OffSearchResult> {
+  let response: Response;
+  try {
+    response = await fetch(buildOffSearchUrl(query, page), {
+      headers: {
+        "User-Agent": userAgent(),
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      cache: "no-store",
+    });
+  } catch (error) {
+    return {
+      status: "error",
+      reason: error instanceof Error ? error.message : "network",
+    };
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return { status: "error", reason: `http-${response.status}` };
+  }
+  if (typeof body !== "object" || body === null) {
+    return { status: "error", reason: "unexpected-body" };
+  }
+  const data = body as Record<string, unknown>;
+
+  const productsRaw = data.products;
+  if (!Array.isArray(productsRaw)) {
+    // An empty search may omit the products array entirely.
+    if (data.count === 0) return { status: "empty" };
+    return { status: "error", reason: "unexpected-shape" };
+  }
+
+  const products: BrandedProduct[] = [];
+  const seenIds = new Set<string>();
+  for (const item of productsRaw) {
+    const rawCode =
+      typeof item === "object" && item !== null
+        ? (item as Record<string, unknown>).code
+        : undefined;
+    const code =
+      typeof rawCode === "string" ? normalizeBarcode(rawCode) : undefined;
+    if (!code) continue; // identity is the barcode — skip unusable
+    if (!hasOffUsableName(item)) continue; // nothing to display
+    const normalized = normalizeOffProduct(asProductEnvelope(item), code, {
+      allowMissingNutrition: true,
+    });
+    if (!normalized.ok) continue; // code mismatch inside OFF itself
+    if (seenIds.has(normalized.product.id)) continue; // same barcode twice
+    seenIds.add(normalized.product.id);
+    products.push(normalized.product);
+  }
+
+  if (products.length === 0) {
+    // Nothing survived normalization (or OFF genuinely has no matches):
+    // an honest empty result, not an error.
+    return { status: "empty" };
+  }
+  return { status: "ok", products };
+}
+
+/** In-flight request dedupe: one network request per query+page. */
+const inFlightSearch = new Map<string, Promise<OffSearchResult>>();
+
+/**
+ * Cached text search used by the search API route: cache → in-flight
+ * dedupe → single OFF request. Successful results are cached for 24 h,
+ * empty results for 1 h (like barcode negatives); errors are never
+ * cached so the user can retry immediately.
+ */
+export async function lookupOffSearch(
+  query: string,
+  page: number,
+): Promise<OffSearchResult> {
+  const key = offSearchCacheKey(query, page);
+  const cached = offSearchCache.get(key);
+  if (cached) {
+    return cached.products.length === 0
+      ? { status: "empty" }
+      : { status: "ok", products: cached.products as BrandedProduct[] };
+  }
+
+  const flightKey = `${key}|inflight`;
+  const existing = inFlightSearch.get(flightKey);
+  if (existing) return existing;
+
+  const request = (async () => {
+    const result = await searchOffProducts(query, page);
+    if (result.status === "ok") {
+      offSearchCache.set(
+        key,
+        { products: result.products },
+        OFF_CACHE_TTL.search,
+      );
+    } else if (result.status === "empty") {
+      offSearchCache.set(key, { products: [] }, OFF_CACHE_TTL.notFound);
+    }
+    // Errors are not cached: the user may retry immediately.
+    return result;
+  })();
+
+  inFlightSearch.set(flightKey, request);
+  try {
+    return await request;
+  } finally {
+    inFlightSearch.delete(flightKey);
+  }
 }

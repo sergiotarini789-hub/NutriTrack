@@ -6,7 +6,11 @@ import { Toast } from "@/components/ui/Toast";
 import { defaultMealForNow, mealName } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
 import { formatNumber } from "@/lib/format";
-import { nutritionForServing, parseAmountInput } from "@/lib/nutrition";
+import {
+  hasNutrition,
+  nutritionForServing,
+  parseAmountInput,
+} from "@/lib/nutrition";
 import type { FoodItem, MealType } from "@/lib/types";
 import { BarcodeLookup } from "./BarcodeLookup";
 import { CustomFoodForm } from "./CustomFoodForm";
@@ -43,7 +47,7 @@ export function AddFoodModal({
   preselectedMeal = null,
   preselectedFoodId = null,
 }: AddFoodModalProps) {
-  const { addEntry, findFood } = useDiary();
+  const { addEntry, findFood, adoptOffProduct } = useDiary();
   const [step, setStep] = useState<Step>("search");
   const [meal, setMeal] = useState<MealType | null>(null);
   const [foodId, setFoodId] = useState<string | null>(null);
@@ -104,6 +108,12 @@ export function AddFoodModal({
   }
 
   function selectFood(next: FoodItem) {
+    // Stage 8B: an OFF search result must be persisted into the local
+    // OFF store BEFORE the entry is created, so the diary can resolve
+    // it offline (same store the barcode flow uses; idempotent by id).
+    if (next.type === "branded" && next.sourceType === "open_food_facts") {
+      adoptOffProduct(next);
+    }
     setFoodId(next.id);
     applyDefaults(next);
     setStep("quantity");
@@ -141,7 +151,9 @@ export function AddFoodModal({
     const kcal = nutritionForServing(food, parsedAmount, unitKey).calories;
     showToast(
       "Добавлено",
-      `${food.name} · +${formatNumber(kcal)} ккал · ${mealName(meal)}`,
+      hasNutrition(food)
+        ? `${food.name} · +${formatNumber(kcal)} ккал · ${mealName(meal)}`
+        : `${food.name} · ${mealName(meal)}`,
     );
     onClose();
   }

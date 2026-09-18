@@ -8,7 +8,12 @@ import { Toast } from "@/components/ui/Toast";
 import { useDiary } from "@/lib/diary";
 import { categoryIcon, getCategory } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
-import { baseUnitLabel, formatServing, sourceLabelOf } from "@/lib/nutrition";
+import {
+  baseUnitLabel,
+  formatServing,
+  hasNutrition,
+  sourceLabelOf,
+} from "@/lib/nutrition";
 import type { FoodItem } from "@/lib/types";
 
 interface FoodDetailsModalProps {
@@ -131,32 +136,40 @@ function FoodDetails({ food }: { food: FoodItem }) {
         <p className="text-[13px] font-medium text-muted-foreground">
           Пищевая ценность на 100 {baseUnitLabel(food)}
         </p>
-        <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-foreground">
-          {formatNumber(food.calories)}
-          <span className="ml-1.5 text-sm font-medium text-muted-foreground">
-            ккал
-          </span>
-        </p>
+        {hasNutrition(food) ? (
+          <p className="mt-1 text-[34px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+            {formatNumber(food.calories ?? 0)}
+            <span className="ml-1.5 text-sm font-medium text-muted-foreground">
+              ккал
+            </span>
+          </p>
+        ) : (
+          <p className="mt-1 text-[15px] font-semibold text-muted-foreground">
+            Нет данных о КБЖУ
+          </p>
+        )}
+        {hasNutrition(food) && (
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div>
             <p className="text-xs text-muted-foreground">Белки</p>
             <p className="mt-0.5 text-sm font-bold tabular-nums text-protein">
-              {formatNumber(food.protein)} г
+              {formatNumber(food.protein ?? 0)} г
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Жиры</p>
             <p className="mt-0.5 text-sm font-bold tabular-nums text-fat">
-              {formatNumber(food.fat)} г
+              {formatNumber(food.fat ?? 0)} г
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Углеводы</p>
             <p className="mt-0.5 text-sm font-bold tabular-nums text-carbs">
-              {formatNumber(food.carbs)} г
+              {formatNumber(food.carbs ?? 0)} г
             </p>
           </div>
         </div>
+        )}
       </div>
 
       {/* Servings */}

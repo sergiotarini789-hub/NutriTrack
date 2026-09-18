@@ -78,6 +78,12 @@ interface DiaryContextValue {
    * failure never breaks local lookups.
    */
   lookupBarcode: (barcode: string) => Promise<BarcodeLookupResult>;
+  /**
+   * Persists an Open Food Facts product chosen by the user (e.g. from
+   * search results) into the local OFF store so diary entries can
+   * resolve it offline. Idempotent by product id.
+   */
+  adoptOffProduct: (product: BrandedProduct) => void;
   addEntry: (input: AddEntryInput) => void;
   updateEntry: (id: string, changes: UpdateEntryInput) => void;
   removeEntry: (id: string) => void;
@@ -183,6 +189,16 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     [repository, offRepository, offProducts],
   );
 
+  /**
+   * Stage 8B: when the user picks an OFF search result, the product is
+   * persisted (upsert by id) BEFORE the entry is created — the same
+   * store the barcode flow uses, so resolution rules stay identical.
+   */
+  const adoptOffProduct = useCallback((product: BrandedProduct) => {
+    upsertOffProduct(product);
+    setOffProducts(loadOffProducts());
+  }, []);
+
   const addEntry = useCallback(
     (input: AddEntryInput) => {
       setEntries((previous) => {
@@ -280,6 +296,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       offProducts,
       findFood,
       lookupBarcode,
+      adoptOffProduct,
       addEntry,
       updateEntry,
       removeEntry,
@@ -299,6 +316,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       offProducts,
       findFood,
       lookupBarcode,
+      adoptOffProduct,
       addEntry,
       updateEntry,
       removeEntry,
