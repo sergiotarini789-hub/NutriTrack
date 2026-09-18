@@ -159,6 +159,76 @@ export const DOMIK_V3 = {
   warnings: [],
 } as const;
 
+/** REAL: complete nutrition, per-100g, 130 g package. Captured 2026-09-18
+ * as the Stage 8A scanner QA product (Danissimo kiwi curd dessert). */
+export const DANISSIMO_V3 = {
+  code: "4600605017265",
+  errors: [],
+  product: {
+    brands: "Даниссимо",
+    categories_tags: [
+      "en:dairies",
+      "en:fermented-foods",
+      "en:desserts",
+      "en:fermented-milk-products",
+      "en:dairy-desserts",
+      "en:fermented-dairy-desserts",
+    ],
+    code: "4600605017265",
+    generic_name: "Продукт творожный с киви, массовая доля жира 5,5 %",
+    image_front_url:
+      "https://images.openfoodfacts.org/images/products/460/060/501/7265/front_ru.7.400.jpg",
+    ingredients_text:
+      "Творог обезжиренный, нормализованные сливки, наполнитель (киви; вода; сахар; загуститель - Е1442; семечки киви; регуляторы кислотности - цитраты натрия, лимонная кислота; ароматизатор; загуститель - гуаровая камедь; краситель — медные комплексы хлорофиллинов), сахар. Может содержать следы глютена, соевого лецитина, яйца куриного, орехов.",
+    nutriments: {
+      carbohydrates: 15.8,
+      carbohydrates_100g: 15.8,
+      carbohydrates_unit: "g",
+      carbohydrates_value: 15.8,
+      energy: 567,
+      "energy-kcal": 135,
+      "energy-kcal_100g": 135,
+      "energy-kcal_unit": "kcal",
+      "energy-kcal_value": 135,
+      "energy-kj": 567,
+      "energy-kj_100g": 567,
+      "energy-kj_unit": "kJ",
+      "energy-kj_value": 567,
+      energy_100g: 567,
+      energy_unit: "kJ",
+      energy_value: 567,
+      fat: 5.5,
+      fat_100g: 5.5,
+      fat_unit: "g",
+      fat_value: 5.5,
+      "nova-group": 4,
+      "nova-group_100g": 4,
+      "nova-group_serving": 4,
+      "nova-group_unit": "",
+      "nova-group_value": 4,
+      proteins: 5.5,
+      proteins_100g: 5.5,
+      proteins_unit: "g",
+      proteins_value: 5.5,
+      sucrose: 11.5,
+      sucrose_100g: 11.5,
+      sucrose_unit: "g",
+      sucrose_value: 11.5,
+    },
+    nutrition_data: "on",
+    nutrition_data_per: "100g",
+    nutrition_data_prepared_per: "100g",
+    product_name: "Даниссимо Творожный с сочным киви 130г",
+    product_name_ru: "Даниссимо Творожный с сочным киви 130г",
+    product_quantity: 130,
+    product_quantity_unit: "g",
+    quantity: "130 г",
+  },
+  result: { id: "product_found", lc_name: "Продукт найден", name: "Product found" },
+  status: "success",
+  warnings: [],
+} as const;
+
 /** REAL: v3 not-found response. */
 export const NOT_FOUND_V3 = {
   code: "4609999999999",

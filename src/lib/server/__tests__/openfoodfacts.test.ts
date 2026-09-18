@@ -11,6 +11,7 @@ import {
 } from "../openfoodfacts";
 import {
   AGUSHA_V3,
+  DANISSIMO_V3,
   DOMIK_V3,
   NO_BRAND_NO_NAME_V3,
   NO_CARBS_V3,
@@ -26,6 +27,7 @@ import {
 } from "./fixtures";
 
 const AGUSHA = "4602541000592";
+const DANISSIMO = "4600605017265";
 const PROSTOKVASHINO = "4607053473544";
 const DOMIK = "4690228007842";
 
@@ -193,6 +195,24 @@ describe("parseOffPackageSize", () => {
 /* ------------------------------------------------------------------ */
 
 describe("normalizeOffProduct", () => {
+  it("parses the real Stage 8A QA payload (Danissimo 4600605017265)", () => {
+    const result = normalizeOffProduct(DANISSIMO_V3, DANISSIMO);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const product = result.product;
+    expect(product.id).toBe("off-4600605017265");
+    expect(product.name).toBe("Даниссимо Творожный с сочным киви 130г");
+    expect(product.brand).toBe("Даниссимо");
+    expect(product.category).toBe("dairy");
+    expect(product.calories).toBe(135);
+    expect(product.protein).toBe(5.5);
+    expect(product.fat).toBe(5.5);
+    expect(product.carbs).toBe(15.8);
+    expect(product.baseUnit).toBe("g");
+    expect(product.packageSize).toBe(130);
+    expect(product.packageUnit).toBe("г");
+  });
+
   it("converts a complete real response into a BrandedProduct", () => {
     const result = normalizeOffProduct(AGUSHA_V3, AGUSHA);
     expect(result.ok).toBe(true);

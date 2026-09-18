@@ -1,11 +1,33 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Barcode, Loader2, Plus, RotateCcw, SearchX } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
+import { Barcode, Loader2, Plus, RotateCcw, ScanBarcode, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useDiary } from "@/lib/diary";
 import { normalizeBarcode } from "@/lib/barcode";
 import type { FoodProduct } from "@/lib/types";
+
+// Stage 8A spike: the scanner overlay is client-only and lazily loaded,
+// so camera APIs (and the ZXing fallback chunk) never run during server
+// rendering and stay out of the initial bundle.
+const BarcodeScannerModal = dynamic(
+  () => import("./BarcodeScannerModal"),
+  { ssr: false },
+);
+
+/**
+ * The scan button is shown only on touch-primary devices (phones,
+ * tablets) — decided after mount to avoid hydration mismatches. Desktop
+ * keeps the unchanged manual-input flow and is never asked for camera
+ * permission.
+ */
+function isScannerEntryVisible(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(pointer: coarse)").matches;
+}
 
 interface BarcodeLookupProps {
   /** A usable product was resolved — continue to the quantity step. */
@@ -33,7 +55,15 @@ export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
   const [value, setValue] = useState("");
   const [state, setState] = useState<LookupState>({ kind: "idle" });
   const [invalid, setInvalid] = useState(false);
+  const [canScan, setCanScan] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The scan button appears only on touch-primary devices, decided after
+  // mount (no hydration mismatch; desktop is never asked for the camera).
+  useEffect(() => {
+    setCanScan(isScannerEntryVisible());
+  }, []);
 
   async function runLookup(raw: string) {
     const normalized = normalizeBarcode(raw);
@@ -106,6 +136,30 @@ export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
           )}
         </Button>
       </div>
+
+      {canScan && (
+        <Button
+          variant="soft"
+          size="lg"
+          className="mt-2 w-full rounded-2xl"
+          onClick={() => setScannerOpen(true)}
+        >
+          <ScanBarcode className="h-[18px] w-[18px]" aria-hidden />
+          Сканировать штрихкод
+        </Button>
+      )}
+
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onUse={(barcode) => {
+          // The detected code goes through the SAME lookup path as
+          // manual entry — no second OFF implementation exists.
+          setScannerOpen(false);
+          setValue(barcode);
+          void runLookup(barcode);
+        }}
+      />
 
       {invalid && (
         <p
