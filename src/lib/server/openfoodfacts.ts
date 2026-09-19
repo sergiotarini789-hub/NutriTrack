@@ -40,6 +40,14 @@ import {
 
 const DEFAULT_BASE_URL = "https://world.openfoodfacts.org";
 
+/**
+ * Search-a-licious — the official OFF full-text search service — lives
+ * on its own host. Stage 8C.1 migrated text search here from the legacy
+ * /cgi/search.pl endpoint (recurring anonymous-access 503 outages).
+ * The v3 barcode endpoint above is NOT affected by this constant.
+ */
+const DEFAULT_SEARCH_BASE_URL = "https://search.openfoodfacts.org";
+
 const DEFAULT_USER_AGENT =
   "NutriTrack/0.1 (food lookup application; https://github.com/sergiotarini789-hub/NutriTrack)";
 
@@ -69,6 +77,25 @@ function baseUrl(): string {
   return fromEnv && /^https?:\/\//.test(fromEnv)
     ? fromEnv.replace(/\/+$/, "")
     : DEFAULT_BASE_URL;
+}
+
+/**
+ * Base URL for text-search requests. Same env-var mechanism as
+ * baseUrl(): a dedicated override (OPEN_FOOD_FACTS_SEARCH_API_BASE)
+ * wins; otherwise the shared API override applies (e.g. a local test
+ * stub serving both the v3 product and the search endpoints); otherwise
+ * the Search-a-licious default.
+ */
+function searchBaseUrl(): string {
+  const dedicated = process.env.OPEN_FOOD_FACTS_SEARCH_API_BASE?.trim();
+  if (dedicated && /^https?:\/\//.test(dedicated)) {
+    return dedicated.replace(/\/+$/, "");
+  }
+  const shared = process.env.OPEN_FOOD_FACTS_API_BASE?.trim();
+  if (shared && /^https?:\/\//.test(shared)) {
+    return shared.replace(/\/+$/, "");
+  }
+  return DEFAULT_SEARCH_BASE_URL;
 }
 
 function userAgent(): string {
@@ -738,27 +765,25 @@ export function hasOffUsableName(rawProduct: unknown): boolean {
 }
 
 /**
- * Builds the OFF text-search request. The official full-text Search
- * API is `GET /cgi/search.pl` (documented Search API; the v3
- * `/api/v3/search` action is not available for GET full-text queries —
- * verified live 2026-09-18: it answers invalid_api_action, and the v3
- * OpenAPI remains WIP). Response products carry the SAME field names
- * as the v3 product endpoint, so the existing normalization layer
- * applies unchanged.
+ * Builds the OFF text-search request against Search-a-licious
+ * (`GET https://search.openfoodfacts.org/search`, verified live
+ * 2026-09-18). The legacy `/cgi/search.pl` endpoint showed recurring
+ * anonymous-access 503 outages and is "not recommended for new
+ * integrations" per the official API cheat sheet. Search-a-licious
+ * hits carry the same per-product field names as the v3 endpoint
+ * (minus fields the search index does not store), so the existing
+ * normalization layer applies behind a small envelope/shape adapter in
+ * searchOffProducts.
  */
 export function buildOffSearchUrl(query: string, page: number): string {
   const params = new URLSearchParams({
-    search_terms: query,
-    search_simple: "1",
-    action: "process",
-    json: "1",
+    q: query,
+    langs: "ru",
     fields: FIELDS,
     page_size: String(OFF_SEARCH_PAGE_SIZE),
     page: String(page),
-    lc: "ru",
-    cc: "ru",
   });
-  return `${baseUrl()}/cgi/search.pl?${params.toString()}`;
+  return `${searchBaseUrl()}/search?${params.toString()}`;
 }
 
 /**
@@ -772,14 +797,35 @@ function asProductEnvelope(item: unknown): unknown {
 }
 
 /**
- * Fetches and normalizes one page of OFF search results.
+ * Search-a-licious returns `brands` as an ARRAY of strings, while the
+ * v3/legacy field (and bestBrand) expect a comma-joined string. This
+ * adapter is the one compatibility boundary: arrays are joined, any
+ * other shape (string, missing) passes through untouched — never a
+ * crash, never an invented brand.
+ */
+function adaptSearchHit(item: unknown): unknown {
+  if (typeof item !== "object" || item === null) return item;
+  const hit = item as Record<string, unknown>;
+  if (Array.isArray(hit.brands)) {
+    return { ...hit, brands: hit.brands.join(",") };
+  }
+  return hit;
+}
+
+/**
+ * Fetches and normalizes one page of Search-a-licious results.
+ *
+ * The envelope differs from the legacy API: results live in `hits[]`
+ * (not `products[]`) and `brands` arrives as an array — adaptSearchHit
+ * is the boundary. Everything else reuses the existing pipeline.
  *
  * Robustness rules mirror the barcode path: network failures, HTTP
- * errors, invalid JSON and unexpected shapes become "error" — never
- * "empty". Products that cannot be identified (no usable barcode code)
- * or have no usable name are skipped, not guessed. Nutritionless
- * products are kept (with undefined nutrition) so the UI can show
- * «Нет данных о КБЖУ».
+ * errors (Search-a-licious answers 400/422 with FastAPI "detail"
+ * bodies and 500s with plain HTML), invalid JSON and unexpected shapes
+ * become "error" — never "empty". Products that cannot be identified
+ * (no usable barcode code) or have no usable name are skipped, not
+ * guessed. Nutritionless products are kept (with undefined nutrition)
+ * so the UI can show «Нет данных о КБЖУ».
  */
 export async function searchOffProducts(
   query: string,
@@ -802,6 +848,13 @@ export async function searchOffProducts(
     };
   }
 
+  // Search-a-licious errors (400/422 FastAPI "detail" JSON, 500 HTML)
+  // are classified by status up front — an upstream failure is never
+  // mistaken for an empty result.
+  if (!response.ok) {
+    return { status: "error", reason: `http-${response.status}` };
+  }
+
   let body: unknown;
   try {
     body = await response.json();
@@ -813,23 +866,24 @@ export async function searchOffProducts(
   }
   const data = body as Record<string, unknown>;
 
-  const productsRaw = data.products;
-  if (!Array.isArray(productsRaw)) {
-    // An empty search may omit the products array entirely.
+  const hitsRaw = data.hits;
+  if (!Array.isArray(hitsRaw)) {
+    // An empty search may omit the hits array entirely.
     if (data.count === 0) return { status: "empty" };
     return { status: "error", reason: "unexpected-shape" };
   }
 
   const products: BrandedProduct[] = [];
   const seenIds = new Set<string>();
-  for (const item of productsRaw) {
+  for (const hit of hitsRaw) {
     const rawCode =
-      typeof item === "object" && item !== null
-        ? (item as Record<string, unknown>).code
+      typeof hit === "object" && hit !== null
+        ? (hit as Record<string, unknown>).code
         : undefined;
     const code =
       typeof rawCode === "string" ? normalizeBarcode(rawCode) : undefined;
     if (!code) continue; // identity is the barcode — skip unusable
+    const item = adaptSearchHit(hit); // brands array → legacy string
     if (!hasOffUsableName(item)) continue; // nothing to display
     const normalized = normalizeOffProduct(asProductEnvelope(item), code, {
       allowMissingNutrition: true,

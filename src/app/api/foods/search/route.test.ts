@@ -64,8 +64,8 @@ describe("GET /api/foods/search", () => {
       products: Array<{ id: string; type: string }>;
     };
     expect(body.status).toBe("ok");
-    expect(body.products).toHaveLength(2);
-    expect(body.products[0].id).toBe("off-4600605019351");
+    expect(body.products).toHaveLength(5);
+    expect(body.products[0].id).toBe("off-4600605017333");
     expect(body.products[0].type).toBe("branded");
   });
 
@@ -80,15 +80,16 @@ describe("GET /api/foods/search", () => {
     );
     await call("/api/foods/search?q=%20%20Даниссимо%20%20");
     expect(calls[0]).toContain(
-      "search_terms=%D0%94%D0%B0%D0%BD%D0%B8%D1%81%D1%81%D0%B8%D0%BC%D0%BE",
+      "q=%D0%94%D0%B0%D0%BD%D0%B8%D1%81%D1%81%D0%B8%D0%BC%D0%BE",
     );
+    expect(calls[0]).toContain("search.openfoodfacts.org/search?");
   });
 
   it("returns an honest empty status", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
-        new Response(JSON.stringify({ count: 0, products: [] }), { status: 200 }),
+        new Response(JSON.stringify({ count: 0, hits: [] }), { status: 200 }),
       ),
     );
     const response = await call("/api/foods/search?q=ыввцук");
