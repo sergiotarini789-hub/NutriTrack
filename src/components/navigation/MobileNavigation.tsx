@@ -10,8 +10,10 @@ function isActive(pathname: string, href: string) {
 }
 
 /**
- * Mobile bottom navigation: frosted bar, the active tab carries a
- * filled accent pill.
+ * Mobile bottom navigation (Stage 10): quiet frosted bar; the active
+ * destination is marked with a soft accent tint and colored label —
+ * calm, clearly readable, never competing with the floating add
+ * action. Comfortable 56px touch targets.
  */
 export function MobileNavigation() {
   const pathname = usePathname();
@@ -30,17 +32,20 @@ export function MobileNavigation() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className="flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 pb-1.5 pt-2"
+              className="flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 pb-1 pt-1.5"
             >
               <span
                 className={cn(
-                  "flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-200",
+                  "flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-200",
                   active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground",
                 )}
               >
-                <Icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.4 : 2} />
+                <Icon
+                  className="h-[21px] w-[21px]"
+                  strokeWidth={active ? 2.4 : 2}
+                />
               </span>
               <span
                 className={cn(

@@ -1,18 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { Calculator, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useAppLaunch } from "@/components/app/AppLaunch";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
-import { DailyNutrition } from "@/components/nutrition/DailyNutrition";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MEALS } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
 import { formatDayMonth, todayKey, weekdayLong } from "@/lib/dates";
-import { formatNumber, pluralize } from "@/lib/format";
+import { pluralize } from "@/lib/format";
 import { todayGreeting } from "@/lib/greeting";
 import {
   entriesForDate,
@@ -22,6 +19,7 @@ import {
 } from "@/lib/nutrition";
 import type { MealType } from "@/lib/types";
 import { MealCard } from "./MealCard";
+import { TodaySummary } from "./TodaySummary";
 
 /** Stagger step: hidden until the launch moment, then a quick rise. */
 function rise(launched: boolean, delayMs: number, extraClass = "") {
@@ -33,10 +31,11 @@ function rise(launched: boolean, delayMs: number, extraClass = "") {
 }
 
 /**
- * "Сегодня" screen: calorie hero with the day's macro overview,
- * followed by the unified diary of meals. Sections enter with a short
- * stagger after the launch sequence; all values come from the real
- * diary entries.
+ * "Сегодня" screen (Stage 10 redesign): a calm editorial page — small
+ * greeting, compact nutrition summary directly on the background, and
+ * MEALS as the core content. On mobile the floating add action (and
+ * each meal's own add row) carry "Добавить еду"; on desktop a quiet
+ * button closes the page. All values come from the real diary entries.
  */
 export function Dashboard() {
   const { ready, entries, targets, profile, findFood } = useDiary();
@@ -54,77 +53,52 @@ export function Dashboard() {
     (meal) => entriesForMeal(entries, today, meal.id).length > 0,
   ).length;
 
+  function openAdd(meal: MealType | null) {
+    setAddMeal(meal);
+    setAddOpen(true);
+  }
+
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <div {...rise(launched, 0, "mb-1")}>
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-primary">
+    <div className="space-y-7 sm:space-y-8">
+      {/* Header: calm greeting + date (no uppercase eyebrow) */}
+      <header {...rise(launched, 0)}>
+        <p className="text-[13px] text-muted-foreground">
           {todayGreeting(profile?.name)}
         </p>
-        <h1 className="mt-0.5 text-[26px] font-bold tracking-tight text-foreground lg:text-3xl">
+        <h1 className="mt-0.5 text-[22px] font-semibold tracking-tight text-foreground">
           Сегодня
         </h1>
         <p className="mt-0.5 text-[13px] text-muted-foreground">
           {formatDayMonth(date)} · {weekdayLong(date)}
         </p>
+      </header>
+
+      {/* Compact nutrition summary */}
+      <div {...rise(launched, 60)}>
+        <TodaySummary totals={totals} targets={targets} />
       </div>
 
-      <div {...rise(launched, 70)}>
-        {targets ? (
-          <DailyNutrition totals={totals} targets={targets} />
-        ) : (
-          <Card className="p-5 sm:p-7">
-            <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Calculator className="h-7 w-7" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-semibold text-foreground">
-                  Заполните параметры профиля
-                </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                  Чтобы рассчитать вашу дневную норму калорий.
-                </p>
-              </div>
-              <Link
-                href="/settings"
-                className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-[15px] font-semibold text-primary-foreground shadow-sm shadow-primary/25 transition-colors hover:bg-primary-hover"
-              >
-                Заполнить профиль
-              </Link>
-            </div>
-          </Card>
-        )}
-      </div>
-
-      <section {...rise(launched, 140)}>
+      {/* Meals — the core of the screen */}
+      <section {...rise(launched, 120)} aria-label="Приёмы пищи">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">
-              Приёмы пищи
-            </h2>
-            {todayEntries.length > 0 ? (
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                {mealsWithFood}{" "}
-                {pluralize(
-                  mealsWithFood,
-                  "приём пищи",
-                  "приёма пищи",
-                  "приёмов пищи",
-                )}{" "}
-                · {todayEntries.length}{" "}
-                {pluralize(todayEntries.length, "продукт", "продукта", "продуктов")}
-              </p>
-            ) : (
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                Начни свой день с первого приёма пищи.
-              </p>
-            )}
-          </div>
-          <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-            Итого: {formatNumber(totals.calories)} ккал
-          </span>
+          <h2 className="text-[15px] font-semibold text-foreground">
+            Приёмы пищи
+          </h2>
+          {todayEntries.length > 0 && (
+            <span className="text-[12px] tabular-nums text-muted-foreground">
+              {mealsWithFood}{" "}
+              {pluralize(
+                mealsWithFood,
+                "приём пищи",
+                "приёма пищи",
+                "приёмов пищи",
+              )}{" "}
+              · {todayEntries.length}{" "}
+              {pluralize(todayEntries.length, "продукт", "продукта", "продуктов")}
+            </span>
+          )}
         </div>
-        <Card className="divide-y divide-border/70 px-1.5 py-1.5 sm:px-2">
+        <div className="space-y-3">
           {MEALS.map((meal) => (
             <MealCard
               key={meal.id}
@@ -135,23 +109,19 @@ export function Dashboard() {
                 entriesForMeal(entries, today, meal.id),
                 findFood,
               )}
-              onAdd={() => {
-                setAddMeal(meal.id);
-                setAddOpen(true);
-              }}
+              onAdd={() => openAdd(meal.id)}
             />
           ))}
-        </Card>
+        </div>
       </section>
 
-      <div {...rise(launched, 210)}>
+      {/* Desktop: quiet page-level add (mobile uses the FAB) */}
+      <div {...rise(launched, 180)} className="hidden lg:block">
         <Button
+          variant="secondary"
           size="lg"
-          className="mx-auto w-full max-w-sm"
-          onClick={() => {
-            setAddMeal(null);
-            setAddOpen(true);
-          }}
+          className="mx-auto w-full max-w-xs rounded-full"
+          onClick={() => openAdd(null)}
         >
           <Plus className="h-5 w-5" />
           Добавить еду

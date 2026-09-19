@@ -120,12 +120,12 @@ export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
             placeholder="Поиск по штрихкоду"
             aria-label="Штрихкод"
             aria-invalid={invalid}
-            className="h-12 w-full rounded-2xl border border-transparent bg-foreground/[0.05] pl-11 pr-4 text-base text-foreground outline-none transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground/70 focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/10 aria-[invalid=true]:border-red-500/60"
+            className="h-11 w-full rounded-xl border border-transparent bg-foreground/[0.05] pl-10 pr-3 text-[15px] text-foreground outline-none transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground/70 focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/10 aria-[invalid=true]:border-red-500/60"
           />
         </div>
         <Button
           size="lg"
-          className="rounded-2xl px-5"
+          className="rounded-xl px-4"
           disabled={!value.trim() || busy}
           onClick={() => runLookup(value)}
         >
@@ -141,7 +141,7 @@ export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
         <Button
           variant="soft"
           size="lg"
-          className="mt-2 w-full rounded-2xl"
+          className="w-full justify-center rounded-xl"
           onClick={() => setScannerOpen(true)}
         >
           <ScanBarcode className="h-[18px] w-[18px]" aria-hidden />

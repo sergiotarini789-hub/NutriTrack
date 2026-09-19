@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";import { Button } from "@/components/ui/Button";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { defaultMealForNow, mealName } from "@/lib/app-data";
@@ -181,14 +183,7 @@ export function AddFoodModal({
         <div key={step} className="animate-step-in">
           {step === "search" && (
             <>
-              <BarcodeLookup
-                onFound={selectFood}
-                onManualCreate={(prefill) => {
-                  setCreatePrefill(prefill);
-                  setStep("create");
-                }}
-              />
-              <div className="mt-5 h-px bg-border" aria-hidden />
+              {/* Search first — it is the primary path */}
               <FoodSearch
                 onSelect={selectFood}
                 onCreate={() => setStep("create")}
@@ -197,6 +192,29 @@ export function AddFoodModal({
                 category={searchCategory}
                 onCategoryChange={setSearchCategory}
               />
+
+              {/* The other two ways: barcode and creating a product */}
+              <div className="mt-5">
+                <div className="h-px bg-border" aria-hidden />
+                <div className="mt-4 space-y-2">
+                  <BarcodeLookup
+                    onFound={selectFood}
+                    onManualCreate={(prefill) => {
+                      setCreatePrefill(prefill);
+                      setStep("create");
+                    }}
+                  />
+                  <Button
+                    variant="soft"
+                    size="lg"
+                    className="w-full justify-center rounded-2xl"
+                    onClick={() => setStep("create")}
+                  >
+                    <Plus className="h-[18px] w-[18px]" />
+                    Создать свой продукт
+                  </Button>
+                </div>
+              </div>
             </>
           )}
 

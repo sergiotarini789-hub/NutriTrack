@@ -388,7 +388,7 @@ export function SettingsForm() {
           )}
         </SettingsSection>
 
-        <SettingsSection title="Приложение">
+        <SettingsSection title="Внешний вид">
           <div className="px-5 py-4 sm:px-6">
             <p className="mb-2.5 text-[15px] text-foreground">Тема</p>
             <ThemeSelector />
