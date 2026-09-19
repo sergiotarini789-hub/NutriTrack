@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Calculator, ChevronDown, PencilLine } from "lucide-react";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
@@ -10,6 +10,8 @@ import {
   goalOptions,
 } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
+import { formatNumber } from "@/lib/format";
+import { profileFieldError } from "@/lib/goals";
 import { parseAmountInput } from "@/lib/nutrition";
 import { loadUnits, saveUnits, type Units } from "@/lib/storage";
 import type { ActivityLevel, Gender, Goal } from "@/lib/types";
@@ -28,16 +30,29 @@ const FIELD_CLASSES =
 const SELECT_CLASSES =
   "appearance-none rounded-xl border border-transparent bg-foreground/[0.05] py-2 pl-3 pr-8 text-[15px] text-foreground outline-none transition-[background-color,border-color,box-shadow] focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/10";
 
-/** Text input that commits a valid positive number on blur/Enter. */
+const MODE_SWITCH_CLASSES =
+  "flex-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors";
+
+const VALUE_CLASSES = "text-[15px] tabular-nums text-foreground";
+
+interface NumberFieldProps {
+  label: string;
+  value: number | null;
+  onCommit: (value: number) => void;
+  /** Boundary validation returning a Russian error message or null. */
+  validate?: (value: number) => string | null;
+  /** Reports the current validation state for the row error line. */
+  onError?: (message: string | null) => void;
+}
+
+/** Text input that commits a valid number in range on blur/Enter. */
 function NumberField({
   label,
   value,
   onCommit,
-}: {
-  label: string;
-  value: number | null;
-  onCommit: (value: number) => void;
-}) {
+  validate,
+  onError,
+}: NumberFieldProps) {
   const [text, setText] = useState(value === null ? "" : String(value));
   const [invalid, setInvalid] = useState(false);
 
@@ -47,13 +62,20 @@ function NumberField({
 
   function commit() {
     const parsed = parseAmountInput(text);
-    if (parsed !== null && parsed > 0) {
+    const message =
+      parsed === null ? "Введите число" : (validate?.(parsed) ?? null);
+    if (parsed !== null && message === null) {
       setInvalid(false);
+      onError?.(null);
       if (parsed !== value) onCommit(parsed);
     } else {
       setInvalid(true);
+      onError?.(message ?? "Введите число");
       setText(value === null ? "" : String(value));
-      window.setTimeout(() => setInvalid(false), 1200);
+      window.setTimeout(() => {
+        setInvalid(false);
+        onError?.(null);
+      }, 2500);
     }
   }
 
@@ -112,10 +134,37 @@ function SelectField<T extends string>({
   );
 }
 
-/** Settings screen with all values persisted to localStorage. */
+/** Read-only value with a unit, for automatically calculated targets. */
+function StaticValue({ value, unit }: { value: number; unit: string }) {
+  return (
+    <span className={VALUE_CLASSES}>
+      {formatNumber(value)}
+      <span className="ml-1 text-sm text-muted-foreground">{unit}</span>
+    </span>
+  );
+}
+
+/**
+ * Settings screen with all values persisted to localStorage. Profile
+ * changes recalculate the daily targets in auto mode («Автоматически
+ * рассчитано»); manual targets are an explicit choice and are never
+ * overwritten by profile edits.
+ */
 export function SettingsForm() {
-  const { ready, profile, targets, setProfile, setTargets } = useDiary();
+  const {
+    ready,
+    profile,
+    manualTargets,
+    goals,
+    targetMode,
+    setProfile,
+    setTargets,
+    setTargetMode,
+  } = useDiary();
   const [units, setUnits] = useState<Units>("metric");
+  const [ageError, setAgeError] = useState<string | null>(null);
+  const [heightError, setHeightError] = useState<string | null>(null);
+  const [weightError, setWeightError] = useState<string | null>(null);
 
   useEffect(() => {
     setUnits(loadUnits());
@@ -133,6 +182,11 @@ export function SettingsForm() {
   const goalSelectOptions: Option<Goal>[] = goalOptions.map(
     ({ value, label }) => ({ value, label }),
   );
+  const goalLabel =
+    profile.goal !== null
+      ? (goalOptions.find((option) => option.value === profile.goal)?.label ??
+        null)
+      : null;
 
   return (
     <>
@@ -145,7 +199,7 @@ export function SettingsForm() {
       </p>
 
       <div className="space-y-7">
-        <SettingsSection title="Профиль">
+        <SettingsSection title="Параметры">
           <SettingRow label="Пол">
             <SelectField
               label="Пол"
@@ -154,39 +208,45 @@ export function SettingsForm() {
               onChange={(gender) => setProfile({ ...profile, gender })}
             />
           </SettingRow>
-          <SettingRow label="Возраст">
+          <SettingRow label="Возраст" error={ageError}>
             <NumberField
               label="Возраст"
               value={profile.age}
+              validate={(value) => profileFieldError("age", value)}
+              onError={setAgeError}
               onCommit={(age) => setProfile({ ...profile, age })}
             />
             <span className="w-7 text-right text-sm text-muted-foreground">
               лет
             </span>
           </SettingRow>
-          <SettingRow label="Рост">
+          <SettingRow label="Рост" error={heightError}>
             <NumberField
               label="Рост"
               value={profile.height}
+              validate={(value) => profileFieldError("height", value)}
+              onError={setHeightError}
               onCommit={(height) => setProfile({ ...profile, height })}
             />
             <span className="w-7 text-right text-sm text-muted-foreground">
               см
             </span>
           </SettingRow>
-          <SettingRow label="Вес">
+          <SettingRow label="Вес" error={weightError}>
             <NumberField
               label="Вес"
               value={profile.weight}
+              validate={(value) => profileFieldError("weight", value)}
+              onError={setWeightError}
               onCommit={(weight) => setProfile({ ...profile, weight })}
             />
             <span className="w-7 text-right text-sm text-muted-foreground">
               кг
             </span>
           </SettingRow>
-          <SettingRow label="Активность">
+          <SettingRow label="Уровень активности">
             <SelectField
-              label="Активность"
+              label="Уровень активности"
               value={profile.activity}
               options={activitySelectOptions}
               onChange={(activity) => setProfile({ ...profile, activity })}
@@ -202,47 +262,130 @@ export function SettingsForm() {
           </SettingRow>
         </SettingsSection>
 
-        <SettingsSection title="Питание">
-          <SettingRow label="Калории">
-            <NumberField
-              label="Дневная норма калорий"
-              value={targets.calories}
-              onCommit={(calories) => setTargets({ ...targets, calories })}
-            />
-            <span className="w-10 text-right text-sm text-muted-foreground">
-              ккал
-            </span>
-          </SettingRow>
-          <SettingRow label="Белки">
-            <NumberField
-              label="Белки"
-              value={targets.protein}
-              onCommit={(protein) => setTargets({ ...targets, protein })}
-            />
-            <span className="w-7 text-right text-sm text-muted-foreground">
-              г
-            </span>
-          </SettingRow>
-          <SettingRow label="Жиры">
-            <NumberField
-              label="Жиры"
-              value={targets.fat}
-              onCommit={(fat) => setTargets({ ...targets, fat })}
-            />
-            <span className="w-7 text-right text-sm text-muted-foreground">
-              г
-            </span>
-          </SettingRow>
-          <SettingRow label="Углеводы">
-            <NumberField
-              label="Углеводы"
-              value={targets.carbs}
-              onCommit={(carbs) => setTargets({ ...targets, carbs })}
-            />
-            <span className="w-7 text-right text-sm text-muted-foreground">
-              г
-            </span>
-          </SettingRow>
+        <SettingsSection title="Цели питания">
+          <div className="px-5 pt-4 sm:px-6">
+            <div
+              className="flex gap-1 rounded-xl bg-foreground/[0.05] p-1"
+              role="group"
+              aria-label="Режим целей питания"
+            >
+              <button
+                type="button"
+                aria-pressed={targetMode === "auto"}
+                onClick={() => setTargetMode("auto")}
+                className={`${MODE_SWITCH_CLASSES} ${
+                  targetMode === "auto"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Calculator className="mr-1.5 inline h-4 w-4" />
+                Автоматически
+              </button>
+              <button
+                type="button"
+                aria-pressed={targetMode === "manual"}
+                onClick={() => setTargetMode("manual")}
+                className={`${MODE_SWITCH_CLASSES} ${
+                  targetMode === "manual"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <PencilLine className="mr-1.5 inline h-4 w-4" />
+                Вручную
+              </button>
+            </div>
+          </div>
+
+          {targetMode === "auto" ? (
+            goals ? (
+              <>
+                <p className="px-5 pt-3 text-[13px] font-medium text-primary sm:px-6">
+                  Автоматически рассчитано
+                </p>
+                <SettingRow label="Калории">
+                  <StaticValue value={goals.calories} unit="ккал" />
+                </SettingRow>
+                <SettingRow label="Белки">
+                  <StaticValue value={goals.protein} unit="г" />
+                </SettingRow>
+                <SettingRow label="Жиры">
+                  <StaticValue value={goals.fat} unit="г" />
+                </SettingRow>
+                <SettingRow label="Углеводы">
+                  <StaticValue value={goals.carbs} unit="г" />
+                </SettingRow>
+                <p className="px-5 pb-4 text-[13px] leading-relaxed text-muted-foreground sm:px-6">
+                  Базовый обмен: {formatNumber(goals.bmr)} ккал
+                  <br />
+                  Суточная потребность: {formatNumber(goals.tdee)} ккал
+                  {goalLabel && (
+                    <>
+                      <br />
+                      Цель: {goalLabel}
+                    </>
+                  )}
+                </p>
+              </>
+            ) : (
+              <p className="px-5 py-4 text-[13px] leading-relaxed text-muted-foreground sm:px-6">
+                Заполните параметры профиля, чтобы рассчитать вашу
+                дневную норму калорий: пол, возраст, рост, вес, уровень
+                активности и цель.
+              </p>
+            )
+          ) : (
+            <>
+              <SettingRow label="Калории">
+                <NumberField
+                  label="Дневная норма калорий"
+                  value={manualTargets.calories}
+                  onCommit={(calories) =>
+                    setTargets({ ...manualTargets, calories })
+                  }
+                />
+                <span className="w-10 text-right text-sm text-muted-foreground">
+                  ккал
+                </span>
+              </SettingRow>
+              <SettingRow label="Белки">
+                <NumberField
+                  label="Белки"
+                  value={manualTargets.protein}
+                  onCommit={(protein) =>
+                    setTargets({ ...manualTargets, protein })
+                  }
+                />
+                <span className="w-7 text-right text-sm text-muted-foreground">
+                  г
+                </span>
+              </SettingRow>
+              <SettingRow label="Жиры">
+                <NumberField
+                  label="Жиры"
+                  value={manualTargets.fat}
+                  onCommit={(fat) => setTargets({ ...manualTargets, fat })}
+                />
+                <span className="w-7 text-right text-sm text-muted-foreground">
+                  г
+                </span>
+              </SettingRow>
+              <SettingRow label="Углеводы">
+                <NumberField
+                  label="Углеводы"
+                  value={manualTargets.carbs}
+                  onCommit={(carbs) => setTargets({ ...manualTargets, carbs })}
+                />
+                <span className="w-7 text-right text-sm text-muted-foreground">
+                  г
+                </span>
+              </SettingRow>
+              <p className="px-5 pb-4 text-[13px] leading-relaxed text-muted-foreground sm:px-6">
+                Цели заданы вручную и не зависят от параметров профиля.
+              </p>
+            </>
+          )}
         </SettingsSection>
 
         <SettingsSection title="Приложение">

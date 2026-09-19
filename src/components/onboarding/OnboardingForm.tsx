@@ -7,7 +7,8 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
-import { activityOptions, DEFAULT_TARGETS, goalOptions } from "@/lib/app-data";
+import { activityOptions, goalOptions } from "@/lib/app-data";
+import { calculateNutritionGoals, profileFieldError } from "@/lib/goals";
 import { cn } from "@/lib/cn";
 import { parseAmountInput } from "@/lib/nutrition";
 import { loadOnboarded, saveOnboarded, saveProfile } from "@/lib/storage";
@@ -157,9 +158,19 @@ export function OnboardingForm() {
   const parsedAge = parseAmountInput(params.age);
   const parsedHeight = parseAmountInput(params.height);
   const parsedWeight = parseAmountInput(params.weight);
-  const ageValid = parsedAge !== null && parsedAge > 0;
-  const heightValid = parsedHeight !== null && parsedHeight > 0;
-  const weightValid = parsedWeight !== null && parsedWeight > 0;
+  const ageError =
+    parsedAge === null ? "Введите число" : profileFieldError("age", parsedAge);
+  const heightError =
+    parsedHeight === null
+      ? "Введите число"
+      : profileFieldError("height", parsedHeight);
+  const weightError =
+    parsedWeight === null
+      ? "Введите число"
+      : profileFieldError("weight", parsedWeight);
+  const ageValid = ageError === null;
+  const heightValid = heightError === null;
+  const weightValid = weightError === null;
 
   const isFinalStep = step === FINAL_STEP;
   const canContinue =
@@ -202,6 +213,16 @@ export function OnboardingForm() {
   }
 
   const displayName = name.trim();
+  // The same calculation engine the app uses afterwards — the wizard
+  // never shows a placeholder goal number.
+  const previewGoals = calculateNutritionGoals({
+    gender,
+    age: parsedAge,
+    height: parsedHeight,
+    weight: parsedWeight,
+    activity,
+    goal,
+  });
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 py-6 sm:px-6 sm:py-10">
@@ -243,10 +264,16 @@ export function OnboardingForm() {
             {displayName ? `Готово, ${displayName}!` : "Готово!"}
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-            Твоя дневная цель:{" "}
-            <span className="font-semibold text-foreground">
-              {DEFAULT_TARGETS.calories.toLocaleString("ru-RU")} ккал
-            </span>
+            {previewGoals ? (
+              <>
+                Твоя дневная цель:{" "}
+                <span className="font-semibold text-foreground">
+                  {previewGoals.calories.toLocaleString("ru-RU")} ккал
+                </span>
+              </>
+            ) : (
+              "Дневные цели будут рассчитаны по твоим параметрам."
+            )}
           </p>
           <p className="mt-1 text-[15px] text-muted-foreground">Начинаем?</p>
           <Button
@@ -292,13 +319,13 @@ export function OnboardingForm() {
             {step === 1 && (
               <div className="grid grid-cols-2 gap-3">
                 <GenderOption
-                  label="Мужчина"
+                  label="Мужской"
                   icon={Mars}
                   selected={gender === "male"}
                   onClick={() => setGender("male")}
                 />
                 <GenderOption
-                  label="Женщина"
+                  label="Женский"
                   icon={Venus}
                   selected={gender === "female"}
                   onClick={() => setGender("female")}
@@ -316,7 +343,7 @@ export function OnboardingForm() {
                   value={params.age}
                   onChange={(event) => setParam("age")(event.target.value)}
                   onBlur={blurParam("age")}
-                  error={touched.age && !ageValid ? "Введите число больше 0" : null}
+                  error={touched.age && !ageValid ? ageError : null}
                 />
                 <Input
                   label="Рост"
@@ -326,7 +353,7 @@ export function OnboardingForm() {
                   value={params.height}
                   onChange={(event) => setParam("height")(event.target.value)}
                   onBlur={blurParam("height")}
-                  error={touched.height && !heightValid ? "Введите число больше 0" : null}
+                  error={touched.height && !heightValid ? heightError : null}
                 />
                 <Input
                   label="Вес"
@@ -336,7 +363,7 @@ export function OnboardingForm() {
                   value={params.weight}
                   onChange={(event) => setParam("weight")(event.target.value)}
                   onBlur={blurParam("weight")}
-                  error={touched.weight && !weightValid ? "Введите число больше 0" : null}
+                  error={touched.weight && !weightValid ? weightError : null}
                 />
               </div>
             )}

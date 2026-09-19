@@ -34,6 +34,21 @@ export type NutritionSummary = NutritionInfo;
 /** Daily nutrition targets. */
 export type NutritionTargets = NutritionInfo;
 
+/**
+ * Full result of the nutrition-goal calculation engine (Stage 9).
+ * Extends the plain targets with the intermediate energy values so
+ * Settings can explain where the numbers come from.
+ */
+export interface NutritionGoals extends NutritionTargets {
+  /** Basal metabolic rate (Mifflin–St Jeor), kcal/day. */
+  bmr: number;
+  /** Total daily energy expenditure (BMR × activity factor), kcal/day. */
+  tdee: number;
+}
+
+/** How the daily nutrition targets are determined. */
+export type TargetMode = "auto" | "manual";
+
 /* ------------------------------------------------------------------ */
 /* Food database                                                       */
 /* ------------------------------------------------------------------ */

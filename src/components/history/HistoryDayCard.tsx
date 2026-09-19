@@ -4,8 +4,8 @@ import type { HistoryDayInfo } from "@/lib/types";
 
 interface HistoryDayCardProps {
   day: HistoryDayInfo;
-  /** Daily calorie target. */
-  target: number;
+  /** Daily calorie target; null while no automatic target exists. */
+  target: number | null;
 }
 
 /**
@@ -34,8 +34,9 @@ export function HistoryDayCard({ day, target }: HistoryDayCardProps) {
     );
   }
 
-  const over = day.calories > target;
-  const diff = day.calories - target;
+  const hasTarget = target !== null;
+  const over = hasTarget && day.calories > target;
+  const diff = hasTarget ? day.calories - target : 0;
 
   return (
     <div className="px-5 py-4 sm:px-6">
@@ -72,13 +73,15 @@ export function HistoryDayCard({ day, target }: HistoryDayCardProps) {
         {formatNumber(day.carbs ?? 0)} г
       </p>
 
-      <div className="mt-2.5">
-        <ProgressBar
-          value={day.calories}
-          max={target}
-          color={over ? "danger" : "primary"}
-        />
-      </div>
+      {hasTarget && (
+        <div className="mt-2.5">
+          <ProgressBar
+            value={day.calories}
+            max={target}
+            color={over ? "danger" : "primary"}
+          />
+        </div>
+      )}
     </div>
   );
 }

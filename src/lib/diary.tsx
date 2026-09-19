@@ -12,7 +12,11 @@ import {
 import { normalizeBarcode } from "./barcode";
 import { findOffProductById, upsertOffProduct } from "./off-products";
 import { OpenFoodFactsRepository } from "./openfoodfacts-repository";
-import { DEFAULT_PROFILE, DEFAULT_TARGETS } from "./app-data";
+import { EMPTY_PROFILE, DEFAULT_TARGETS } from "./app-data";
+import {
+  calculateNutritionGoals,
+  resolveEffectiveTargets,
+} from "./goals";
 import { todayKey } from "./dates";
 import { LocalFoodRepository } from "./food-repository";
 import {
@@ -20,10 +24,12 @@ import {
   loadEntries,
   loadOffProducts,
   loadProfile,
+  loadTargetMode,
   loadTargets,
   loadUserFoods,
   saveEntries,
   saveProfile,
+  saveTargetMode,
   saveTargets,
 } from "./storage";
 import type {
@@ -33,7 +39,9 @@ import type {
   FoodProduct,
   FoodProductType,
   MealType,
+  NutritionGoals,
   NutritionTargets,
+  TargetMode,
   UserProduct,
   UserProductInput,
   UserProductUpdate,
@@ -63,7 +71,27 @@ interface DiaryContextValue {
   /** True once data has been loaded from localStorage. */
   ready: boolean;
   entries: FoodEntry[];
-  targets: NutritionTargets;
+  /**
+   * Effective daily targets — the ONE source consumed by the dashboard
+   * and Settings. Derived: manual mode → stored manual targets; auto
+   * mode → calculated from the profile; auto mode with an INCOMPLETE
+   * profile → null (no target — the UI must show an incomplete-profile
+   * state, never a legacy placeholder like 2100 kcal).
+   */
+  targets: NutritionTargets | null;
+  /**
+   * The stored manual targets (editing basis for manual mode; seeded
+   * from legacy stored data). Never affected by profile changes.
+   */
+  manualTargets: NutritionTargets;
+  /**
+   * Calculation details for the current profile in auto mode (bmr,
+   * tdee, calorie target); null in manual mode or when the profile is
+   * incomplete.
+   */
+  goals: NutritionGoals | null;
+  /** Whether targets are calculated ("auto") or manual ("manual"). */
+  targetMode: TargetMode;
   profile: UserProfile;
   /** Built-in and user-created products (via the local repository). */
   allFoods: FoodProduct[];
@@ -87,7 +115,13 @@ interface DiaryContextValue {
   addEntry: (input: AddEntryInput) => void;
   updateEntry: (id: string, changes: UpdateEntryInput) => void;
   removeEntry: (id: string) => void;
+  /**
+   * Explicitly sets manual targets — switches the mode to "manual".
+   * Profile changes never overwrite them afterwards.
+   */
   setTargets: (targets: NutritionTargets) => void;
+  /** Switches between calculated and manual targets. */
+  setTargetMode: (mode: TargetMode) => void;
   setProfile: (profile: UserProfile) => void;
   addUserFood: (input: UserFoodInput) => FoodProduct;
   updateUserFood: (id: string, changes: UserProductUpdate) => void;
@@ -105,16 +139,17 @@ const DiaryContext = createContext<DiaryContextValue | null>(null);
 export function DiaryProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [entries, setEntries] = useState<FoodEntry[]>([]);
-  const [targets, setTargetsState] = useState<NutritionTargets>(
-    DEFAULT_TARGETS,
-  );
-  const [profile, setProfileState] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [manualTargets, setManualTargetsState] =
+    useState<NutritionTargets>(DEFAULT_TARGETS);
+  const [targetMode, setTargetModeState] = useState<TargetMode>("auto");
+  const [profile, setProfileState] = useState<UserProfile>(EMPTY_PROFILE);
   const [userFoods, setUserFoods] = useState<UserProduct[]>([]);
   const [offProducts, setOffProducts] = useState<BrandedProduct[]>([]);
 
   useEffect(() => {
     setEntries(loadEntries());
-    setTargetsState(loadTargets());
+    setManualTargetsState(loadTargets());
+    setTargetModeState(loadTargetMode());
     setProfileState(loadProfile());
     setUserFoods(loadUserFoods());
     setOffProducts(loadOffProducts());
@@ -122,8 +157,13 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
 
     function onStorage(event: StorageEvent) {
       if (event.key === STORAGE_KEYS.entries) setEntries(loadEntries());
-      else if (event.key === STORAGE_KEYS.targets) setTargetsState(loadTargets());
-      else if (event.key === STORAGE_KEYS.profile) setProfileState(loadProfile());
+      else if (event.key === STORAGE_KEYS.targets) {
+        setManualTargetsState(loadTargets());
+      } else if (event.key === STORAGE_KEYS.targetMode) {
+        setTargetModeState(loadTargetMode());
+      } else if (event.key === STORAGE_KEYS.profile) {
+        setProfileState(loadProfile());
+      }
       else if (event.key === STORAGE_KEYS.userFoods) setUserFoods(loadUserFoods());
       else if (event.key === STORAGE_KEYS.offProducts) {
         setOffProducts(loadOffProducts());
@@ -248,9 +288,30 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Derived state: the effective targets always come from the profile
+  // (auto; null while the profile is incomplete) or the stored manual
+  // values — Settings and the dashboard consume this single result,
+  // never their own calculations.
+  const goals = useMemo(
+    () => (targetMode === "auto" ? calculateNutritionGoals(profile) : null),
+    [targetMode, profile],
+  );
+  const targets = useMemo(
+    () => resolveEffectiveTargets(profile, targetMode, manualTargets),
+    [profile, targetMode, manualTargets],
+  );
+
   const setTargets = useCallback((next: NutritionTargets) => {
-    setTargetsState(next);
+    // Editing a target value is an explicit choice of manual targets.
+    setManualTargetsState(next);
     saveTargets(next);
+    setTargetModeState("manual");
+    saveTargetMode("manual");
+  }, []);
+
+  const setTargetMode = useCallback((mode: TargetMode) => {
+    setTargetModeState(mode);
+    saveTargetMode(mode);
   }, []);
 
   const setProfile = useCallback((next: UserProfile) => {
@@ -290,6 +351,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       ready,
       entries,
       targets,
+      manualTargets,
+      goals,
+      targetMode,
       profile,
       allFoods,
       userFoods,
@@ -301,6 +365,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       updateEntry,
       removeEntry,
       setTargets,
+      setTargetMode,
       setProfile,
       addUserFood,
       updateUserFood,
@@ -310,6 +375,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       ready,
       entries,
       targets,
+      manualTargets,
+      goals,
+      targetMode,
       profile,
       allFoods,
       userFoods,
@@ -321,6 +389,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       updateEntry,
       removeEntry,
       setTargets,
+      setTargetMode,
       setProfile,
       addUserFood,
       updateUserFood,

@@ -67,11 +67,14 @@ export const FREQUENT_FOOD_IDS = [
 ] as const;
 
 export const GENDER_LABELS: Record<Gender, string> = {
-  male: "Мужчина",
-  female: "Женщина",
+  male: "Мужской",
+  female: "Женский",
 };
 
-/** Default targets until the user changes them in settings. */
+/**
+ * Legacy target fallback (Stage ≤8). Used only when no calculated or
+ * manual targets are available — never presented as personalized.
+ */
 export const DEFAULT_TARGETS: NutritionTargets = {
   calories: 2100,
   protein: 140,
@@ -79,22 +82,27 @@ export const DEFAULT_TARGETS: NutritionTargets = {
   carbs: 230,
 };
 
-/** Default profile until onboarding/settings provide real values. */
-export const DEFAULT_PROFILE: UserProfile = {
-  gender: "male",
-  age: 28,
-  height: 178,
-  weight: 76,
-  activity: "medium",
-  goal: "maintain",
+/**
+ * Empty profile: every field unknown. Missing data stays missing — the
+ * app never treats placeholder body values as real user data (Stage 9).
+ * Onboarding/settings fill these in; goals are calculated only from a
+ * complete profile.
+ */
+export const EMPTY_PROFILE: UserProfile = {
+  gender: null,
+  age: null,
+  height: null,
+  weight: null,
+  activity: null,
+  goal: null,
 };
 
 export const activityOptions: SelectOption<ActivityLevel>[] = [
-  { value: "minimal", label: "Минимальная", description: "Сидячая работа, практически без нагрузок", icon: PersonStanding },
-  { value: "low", label: "Низкая", description: "Лёгкие нагрузки 1–3 раза в неделю", icon: Footprints },
-  { value: "medium", label: "Средняя", description: "Тренировки 3–5 раз в неделю", icon: Bike },
-  { value: "high", label: "Высокая", description: "Интенсивные тренировки 6–7 раз в неделю", icon: Dumbbell },
-  { value: "very_high", label: "Очень высокая", description: "Физический труд или две тренировки в день", icon: Flame },
+  { value: "minimal", label: "Сидячий образ жизни", description: "Сидячая работа, практически без нагрузок", icon: PersonStanding },
+  { value: "low", label: "Лёгкая активность", description: "Лёгкие нагрузки 1–3 раза в неделю", icon: Footprints },
+  { value: "medium", label: "Средняя активность", description: "Тренировки 3–5 раз в неделю", icon: Bike },
+  { value: "high", label: "Высокая активность", description: "Интенсивные тренировки 6–7 раз в неделю", icon: Dumbbell },
+  { value: "very_high", label: "Очень высокая активность", description: "Физический труд или две тренировки в день", icon: Flame },
 ];
 
 export const goalOptions: SelectOption<Goal>[] = [

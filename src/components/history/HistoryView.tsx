@@ -70,7 +70,7 @@ export function HistoryView() {
 
       {hasData ? (
         <div className="space-y-5 sm:space-y-6">
-          <WeeklyOverview days={days} target={targets.calories} />
+          <WeeklyOverview days={days} target={(targets?.calories ?? null)} />
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-foreground">
@@ -81,7 +81,7 @@ export function HistoryView() {
                 <HistoryDayCard
                   key={day.dateKey}
                   day={day}
-                  target={targets.calories}
+                  target={(targets?.calories ?? null)}
                 />
               ))}
             </Card>

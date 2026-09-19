@@ -5,8 +5,8 @@ import type { HistoryDayInfo } from "@/lib/types";
 
 interface WeeklyOverviewProps {
   days: HistoryDayInfo[];
-  /** Daily calorie target. */
-  target: number;
+  /** Daily calorie target; null while no automatic target exists. */
+  target: number | null;
 }
 
 /** Lightweight bar-chart overview of the last 7 days. */
@@ -15,14 +15,19 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
     .map((day) => day.calories)
     .filter((calories): calories is number => calories !== null);
 
-  const chartMax = Math.ceil(Math.max(...values, target) * 1.08);
-  const targetPercent = (target / chartMax) * 100;
+  const chartMax = Math.max(
+    1,
+    Math.ceil(Math.max(...values, target ?? 0) * 1.08),
+  );
   const daysWithData = values.length;
   const average =
     daysWithData > 0
       ? Math.round(values.reduce((sum, value) => sum + value, 0) / daysWithData)
       : null;
-  const inNormCount = values.filter((value) => value <= target).length;
+  const inNormCount =
+    target === null
+      ? null
+      : values.filter((value) => value <= target).length;
 
   return (
     <Card className="p-5 sm:p-6">
@@ -37,18 +42,23 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
 
       {/* Chart */}
       <div className="relative mt-6 h-40 sm:h-44">
-        <div
-          className="absolute inset-x-0 border-t border-dashed border-muted-foreground/40"
-          style={{ bottom: `${targetPercent}%` }}
-        >
-          <span className="absolute right-0 top-0 -translate-y-full pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            норма
-          </span>
-        </div>
+        {target !== null && (
+          <div
+            className="absolute inset-x-0 border-t border-dashed border-muted-foreground/40"
+            style={{ bottom: `${(target / chartMax) * 100}%` }}
+          >
+            <span className="absolute right-0 top-0 -translate-y-full pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              норма
+            </span>
+          </div>
+        )}
 
         <div className="flex h-full items-end gap-1.5 sm:gap-3">
           {days.map((day) => {
-            const overNorm = day.calories !== null && day.calories > target;
+            const overNorm =
+              day.calories !== null &&
+              target !== null &&
+              day.calories > target;
             return (
             <div
               key={day.dateKey}
@@ -118,7 +128,7 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
         <div className="pl-4">
           <p className="text-[13px] text-muted-foreground">В норме</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
-            {daysWithData === 0
+            {inNormCount === null
               ? "—"
               : `${inNormCount} из ${daysWithData} дней`}
           </p>

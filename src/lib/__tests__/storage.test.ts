@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   STORAGE_KEYS,
   loadEntries,
+  loadProfile,
+  loadTargetMode,
+  loadTargets,
   loadUserFoods,
+  saveProfile,
+  saveTargetMode,
+  saveTargets,
   saveUserFoods,
 } from "../storage";
 import type { UserProduct } from "../types";
@@ -246,5 +252,124 @@ describe("loadUserFoods: legacy custom foods", () => {
     expect(loadUserFoods()).toEqual([]);
     storage.setItem(STORAGE_KEYS.userFoods, "[{bad json");
     expect(loadUserFoods()).toEqual([]);
+  });
+});
+
+
+describe("profile persistence (Stage 9)", () => {
+  afterEach(() => {
+    storage.clear();
+  });
+
+  it("returns an empty profile when nothing is stored — never fake data", () => {
+    const profile = loadProfile();
+    expect(profile.gender).toBeNull();
+    expect(profile.age).toBeNull();
+    expect(profile.height).toBeNull();
+    expect(profile.weight).toBeNull();
+    expect(profile.activity).toBeNull();
+    expect(profile.goal).toBeNull();
+    expect(profile.name).toBeUndefined();
+  });
+
+  it("round-trips a complete profile", () => {
+    const profile = {
+      name: "Игорь",
+      gender: "male" as const,
+      age: 28,
+      height: 176,
+      weight: 75,
+      activity: "minimal" as const,
+      goal: "maintain" as const,
+    };
+    saveProfile(profile);
+    expect(loadProfile()).toEqual(profile);
+  });
+
+  it("treats out-of-range body values as missing (not fake real data)", () => {
+    storage.setItem(
+      STORAGE_KEYS.profile,
+      JSON.stringify({
+        gender: "male",
+        age: 5,
+        height: 176,
+        weight: 999,
+        activity: "minimal",
+        goal: "maintain",
+      }),
+    );
+    const profile = loadProfile();
+    expect(profile.gender).toBe("male");
+    expect(profile.age).toBeNull();
+    expect(profile.height).toBe(176);
+    expect(profile.weight).toBeNull();
+  });
+
+  it("tolerates corrupt profile data", () => {
+    storage.setItem(STORAGE_KEYS.profile, "{bad json");
+    expect(loadProfile().gender).toBeNull();
+    storage.setItem(STORAGE_KEYS.profile, JSON.stringify("nope"));
+    expect(loadProfile().age).toBeNull();
+  });
+});
+
+describe("target mode persistence (Stage 9)", () => {
+  afterEach(() => {
+    storage.clear();
+  });
+
+  it("defaults to auto mode for fresh users", () => {
+    expect(loadTargetMode()).toBe("auto");
+  });
+
+  it("keeps an explicitly stored mode", () => {
+    saveTargetMode("manual");
+    expect(loadTargetMode()).toBe("manual");
+    saveTargetMode("auto");
+    expect(loadTargetMode()).toBe("auto");
+  });
+
+  it("migrates customized legacy targets to manual mode", () => {
+    // Targets differing from the legacy defaults had been edited by
+    // hand before modes existed — they must be preserved as manual.
+    saveTargets({ calories: 2500, protein: 140, fat: 65, carbs: 230 });
+    expect(loadTargetMode()).toBe("manual");
+  });
+
+  it("migrates untouched legacy default targets to auto mode", () => {
+    saveTargets({ calories: 2100, protein: 140, fat: 65, carbs: 230 });
+    expect(loadTargetMode()).toBe("auto");
+  });
+
+  it("detects customization in any of the four target fields", () => {
+    saveTargets({ calories: 2100, protein: 100, fat: 65, carbs: 230 });
+    expect(loadTargetMode()).toBe("manual");
+  });
+
+  it("an explicit mode always wins over the migration heuristic", () => {
+    saveTargetMode("auto");
+    saveTargets({ calories: 2500, protein: 140, fat: 65, carbs: 230 });
+    expect(loadTargetMode()).toBe("auto");
+  });
+
+  it("round-trips manual targets", () => {
+    const manual = { calories: 2400, protein: 130, fat: 70, carbs: 280 };
+    saveTargets(manual);
+    expect(loadTargets()).toEqual(manual);
+  });
+
+  it("valid existing stored targets remain compatible (legacy partial data)", () => {
+    // Old records may miss some fields — the surviving values load and
+    // only the missing ones fall back to the legacy defaults.
+    storage.setItem(
+      STORAGE_KEYS.targets,
+      JSON.stringify({ calories: 2200 }),
+    );
+    expect(loadTargets()).toEqual({
+      calories: 2200,
+      protein: 140,
+      fat: 65,
+      carbs: 230,
+    });
   });
 });

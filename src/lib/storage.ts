@@ -1,4 +1,5 @@
-import { DEFAULT_PROFILE, DEFAULT_TARGETS } from "./app-data";
+import { EMPTY_PROFILE, DEFAULT_TARGETS } from "./app-data";
+import { profileFieldError } from "./goals";
 import { G_UNIT, ML_UNIT } from "./food-data";
 import { normalizeBarcode } from "./barcode";
 import type {
@@ -14,6 +15,7 @@ import type {
   Goal,
   MealType,
   NutritionTargets,
+  TargetMode,
   UserProfile,
   UserProduct,
 } from "./types";
@@ -37,6 +39,12 @@ export const STORAGE_KEYS = {
    * reference these products by id ("off-<barcode>").
    */
   offProducts: `${PREFIX}:off-products`,
+  /**
+   * Stage 9: whether daily targets are calculated from the profile
+   * ("auto") or manually set by the user ("manual"). Additive key —
+   * existing data is never renamed or dropped.
+   */
+  targetMode: `${PREFIX}:target-mode`,
 } as const;
 
 export type Units = "metric" | "imperial";
@@ -468,18 +476,32 @@ function parseGoal(value: unknown): Goal | null {
     : null;
 }
 
+/**
+ * Numeric body fields are only kept when they are inside the
+ * application boundaries (see PROFILE_LIMITS); out-of-range values are
+ * treated as missing so no goal is ever calculated from nonsense.
+ */
+function boundedNumber(
+  field: "age" | "height" | "weight",
+  value: unknown,
+): number | null {
+  const parsed = positiveNumber(value);
+  if (parsed === null) return null;
+  return profileFieldError(field, parsed) === null ? parsed : null;
+}
+
 export function loadProfile(): UserProfile {
   const raw = readJson<unknown>(STORAGE_KEYS.profile);
-  if (!isRecord(raw)) return DEFAULT_PROFILE;
+  if (!isRecord(raw)) return EMPTY_PROFILE;
   return {
     name:
       typeof raw.name === "string" && raw.name.trim()
         ? raw.name.trim().slice(0, 40)
         : undefined,
     gender: parseGender(raw.gender),
-    age: positiveNumber(raw.age),
-    height: positiveNumber(raw.height),
-    weight: positiveNumber(raw.weight),
+    age: boundedNumber("age", raw.age),
+    height: boundedNumber("height", raw.height),
+    weight: boundedNumber("weight", raw.weight),
     activity: parseActivity(raw.activity),
     goal: parseGoal(raw.goal),
   };
@@ -508,6 +530,39 @@ export function loadTargets(): NutritionTargets {
 
 export function saveTargets(targets: NutritionTargets): void {
   writeJson(STORAGE_KEYS.targets, targets);
+}
+
+/* --------------------------- Target mode ---------------------------- */
+
+/**
+ * Loads how daily targets are determined (Stage 9).
+ *
+ * Migration for data saved before modes existed: an explicitly stored
+ * mode always wins. Otherwise a user whose stored targets differ from
+ * the legacy defaults had customized them manually — their values are
+ * preserved as "manual". Everyone else starts with "auto" so goals
+ * become calculated from the profile.
+ */
+export function loadTargetMode(): TargetMode {
+  const rawMode = readJson<unknown>(STORAGE_KEYS.targetMode);
+  if (rawMode === "auto" || rawMode === "manual") return rawMode;
+
+  const stored = readJson<unknown>(STORAGE_KEYS.targets);
+  if (isRecord(stored)) {
+    const customized = (
+      ["calories", "protein", "fat", "carbs"] as const
+    ).some(
+      (field) =>
+        targetField(stored[field], DEFAULT_TARGETS[field]) !==
+        DEFAULT_TARGETS[field],
+    );
+    if (customized) return "manual";
+  }
+  return "auto";
+}
+
+export function saveTargetMode(mode: TargetMode): void {
+  writeJson(STORAGE_KEYS.targetMode, mode);
 }
 
 /* -------------------------- App preferences -------------------------- */

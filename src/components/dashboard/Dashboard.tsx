@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Calculator, Plus } from "lucide-react";
 import { useAppLaunch } from "@/components/app/AppLaunch";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { DailyNutrition } from "@/components/nutrition/DailyNutrition";
@@ -68,7 +69,31 @@ export function Dashboard() {
       </div>
 
       <div {...rise(launched, 70)}>
-        <DailyNutrition totals={totals} targets={targets} />
+        {targets ? (
+          <DailyNutrition totals={totals} targets={targets} />
+        ) : (
+          <Card className="p-5 sm:p-7">
+            <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Calculator className="h-7 w-7" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold text-foreground">
+                  Заполните параметры профиля
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                  Чтобы рассчитать вашу дневную норму калорий.
+                </p>
+              </div>
+              <Link
+                href="/settings"
+                className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-[15px] font-semibold text-primary-foreground shadow-sm shadow-primary/25 transition-colors hover:bg-primary-hover"
+              >
+                Заполнить профиль
+              </Link>
+            </div>
+          </Card>
+        )}
       </div>
 
       <section {...rise(launched, 140)}>
