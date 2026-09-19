@@ -9,6 +9,7 @@ import { defaultMealForNow, mealName } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
 import { formatNumber } from "@/lib/format";
 import {
+  formatAmountInUnit,
   hasNutrition,
   nutritionForServing,
   parseAmountInput,
@@ -35,6 +36,8 @@ interface AddFoodModalProps {
   preselectedMeal?: MealType | null;
   /** Food preset, e.g. "Добавить в дневник" from the products page. */
   preselectedFoodId?: string | null;
+  /** Reopens the flow — used by the "Добавить ещё" toast action. */
+  onReopen?: () => void;
 }
 
 /**
@@ -48,6 +51,7 @@ export function AddFoodModal({
   onClose,
   preselectedMeal = null,
   preselectedFoodId = null,
+  onReopen,
 }: AddFoodModalProps) {
   const { addEntry, findFood, adoptOffProduct } = useDiary();
   const [step, setStep] = useState<Step>("search");
@@ -58,10 +62,15 @@ export function AddFoodModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchCategory, setSearchCategory] = useState<string>("all");
   const [createPrefill, setCreatePrefill] = useState<CreatePrefill | null>(null);
-  const [toast, setToast] = useState<{ message: string; detail?: string } | null>(
-    null,
-  );
+  const [toast, setToast] = useState<{
+    message: string;
+    detail?: string;
+    action?: { label: string; onClick: () => void } | null;
+  } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  // Double-submission guard: one entry per add click, ever (Stage 11).
+  const submitLockRef = useRef(false);
 
   const food: FoodItem | null = useMemo(
     () => (foodId ? (findFood(foodId) ?? null) : null),
@@ -81,6 +90,7 @@ export function AddFoodModal({
   const wasOpenRef = useRef(false);
   useEffect(() => {
     if (open && !wasOpenRef.current) {
+      submitLockRef.current = false;
       setMeal(preselectedMeal ?? defaultMealForNow());
       setFoodId(preselectedFoodId);
       setSearchQuery("");
@@ -128,10 +138,14 @@ export function AddFoodModal({
     showToast(`Продукт «${next.name}» создан`);
   }
 
-  function showToast(message: string, detail?: string) {
+  function showToast(
+    message: string,
+    detail?: string,
+    action?: { label: string; onClick: () => void } | null,
+  ) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ message, detail });
-    toastTimer.current = setTimeout(() => setToast(null), 2500);
+    setToast({ message, detail, action });
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
   }
 
   function goBack() {
@@ -143,7 +157,11 @@ export function AddFoodModal({
   }
 
   function handleAdd() {
+    // Locked after the first tap until the sheet reopens — a double
+    // click or a repeated Enter must not create a second entry.
+    if (submitLockRef.current) return;
     if (!canAdd || !meal || !food || parsedAmount === null) return;
+    submitLockRef.current = true;
     addEntry({
       foodId: food.id,
       mealType: meal,
@@ -151,11 +169,22 @@ export function AddFoodModal({
       unit: unitKey,
     });
     const kcal = nutritionForServing(food, parsedAmount, unitKey).calories;
+    const amountLabel = formatAmountInUnit(food, parsedAmount, unitKey);
     showToast(
-      "Добавлено",
+      `Добавлено в ${mealName(meal).toLowerCase()}`,
       hasNutrition(food)
-        ? `${food.name} · +${formatNumber(kcal)} ккал · ${mealName(meal)}`
-        : `${food.name} · ${mealName(meal)}`,
+        ? `${food.name} · ${amountLabel} · ${formatNumber(Math.round(kcal))} ккал`
+        : `${food.name} · ${amountLabel}`,
+      onReopen
+        ? {
+            label: "Добавить ещё",
+            onClick: () => {
+              if (toastTimer.current) clearTimeout(toastTimer.current);
+              setToast(null);
+              onReopen();
+            },
+          }
+        : null,
     );
     onClose();
   }
@@ -167,15 +196,16 @@ export function AddFoodModal({
         onClose={onClose}
         title={step === "create" ? "Создать продукт" : "Добавить еду"}
         onBack={step !== "search" ? goBack : undefined}
+        size="lg"
         footer={
-          step === "quantity" ? (
+          step === "quantity" && meal ? (
             <Button
               size="lg"
               className="w-full rounded-full"
               disabled={!canAdd}
               onClick={handleAdd}
             >
-              Добавить
+              Добавить в {mealName(meal).toLowerCase()}
             </Button>
           ) : undefined
         }
@@ -191,6 +221,7 @@ export function AddFoodModal({
                 onQueryChange={setSearchQuery}
                 category={searchCategory}
                 onCategoryChange={setSearchCategory}
+                searchInputRef={searchInputRef}
               />
 
               {/* The other two ways: barcode and creating a product */}
@@ -202,6 +233,10 @@ export function AddFoodModal({
                     onManualCreate={(prefill) => {
                       setCreatePrefill(prefill);
                       setStep("create");
+                    }}
+                    onSearchFocus={() => {
+                      setSearchQuery("");
+                      searchInputRef.current?.focus();
                     }}
                   />
                   <Button
@@ -248,11 +283,16 @@ export function AddFoodModal({
                 onQueryChange={setSearchQuery}
                 category={searchCategory}
                 onCategoryChange={setSearchCategory}
+                searchInputRef={searchInputRef}
               />
             ))}
         </div>
       </Modal>
-      <Toast message={toast?.message ?? null} detail={toast?.detail} />
+      <Toast
+        message={toast?.message ?? null}
+        detail={toast?.detail}
+        action={toast?.action ?? null}
+      />
     </>
   );
 }

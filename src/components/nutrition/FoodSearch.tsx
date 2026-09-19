@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { Loader2, Plus, Search, X } from "lucide-react";
 import { CategoryChips } from "@/components/foods/CategoryChips";
 import type { CategoryChip } from "@/components/foods/CategoryChips";
-import { FREQUENT_FOOD_IDS } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
 import {
   ALL_CATEGORY,
@@ -18,17 +17,18 @@ import {
   searchOffCache,
 } from "@/lib/hybrid-search";
 import { formatNumber } from "@/lib/format";
+import { recentFoodIds } from "@/lib/recent-foods";
 import {
   baseUnitLabel,
   hasNutrition,
   nutritionOf,
 } from "@/lib/nutrition";
 import { useOffSearch } from "@/lib/off-search";
-import type { BrandedProduct, FoodItem } from "@/lib/types";
+import type { FoodItem } from "@/lib/types";
 
 const MAX_RESULTS = 30;
 const MAX_OFF_RESULTS = 10;
-const FREQUENT_COUNT = 6;
+const RECENT_COUNT = 6;
 
 interface FoodSearchProps {
   onSelect: (food: FoodItem) => void;
@@ -40,6 +40,8 @@ interface FoodSearchProps {
   /** Controlled category filter. */
   category: string;
   onCategoryChange: (category: string) => void;
+  /** External access to the search input (e.g. to focus it). */
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 /**
@@ -57,13 +59,15 @@ export function FoodSearch({
   onQueryChange,
   category,
   onCategoryChange,
+  searchInputRef,
 }: FoodSearchProps) {
   const { allFoods, entries, userFoods, findFood, offProducts } = useDiary();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = searchInputRef ?? localInputRef;
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+  }, [inputRef]);
 
   const results = useMemo(
     () => searchFoods(allFoods, query, category),
@@ -123,23 +127,12 @@ export function FoodSearch({
     return list;
   }, [userFoods]);
 
-  /** Most-used foods from the diary, padded with sensible defaults. */
-  const frequent = useMemo<FoodItem[]>(() => {
-    const counts = new Map<string, number>();
-    for (const entry of entries) {
-      counts.set(entry.foodId, (counts.get(entry.foodId) ?? 0) + 1);
-    }
-    const ranked = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => findFood(id))
-      .filter((food): food is FoodItem => food !== undefined)
-      .slice(0, FREQUENT_COUNT);
-
-    const seen = new Set(ranked.map((food) => food.id));
-    const fallback = FREQUENT_FOOD_IDS.map((id) => findFood(id)).filter(
-      (food): food is FoodItem => food !== undefined && !seen.has(food.id),
-    );
-    return [...ranked, ...fallback].slice(0, FREQUENT_COUNT);
+  /** Recently logged foods from the real diary (Stage 11). No
+   *  fabricated fallback — an empty diary hides the section. */
+  const recent = useMemo<FoodItem[]>(() => {
+    return recentFoodIds(entries, RECENT_COUNT)
+      .map((id) => findFood(id))
+      .filter((food): food is FoodItem => food !== undefined);
   }, [entries, findFood]);
 
   /** Enter picks the first visible result (local first, then OFF). */
@@ -183,28 +176,19 @@ export function FoodSearch({
         )}
       </div>
 
-      {/* Frequent shortcuts (only before typing) */}
-      {!query && frequent.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[13px] font-semibold text-muted-foreground">
-            Часто используемые
+      {/* Recent foods from the diary (only before typing) */}
+      {!query && recent.length > 0 && (
+        <div className="mt-4">
+          <p className="px-2.5 text-[13px] font-semibold text-muted-foreground">
+            Недавние
           </p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {frequent.map((food) => {
-              const Icon = categoryIcon(food.category);
-              return (
-                <button
-                  key={food.id}
-                  type="button"
-                  onClick={() => onSelect(food)}
-                  className="flex h-10 items-center gap-2 rounded-full bg-foreground/[0.06] pl-3 pr-3.5 text-sm font-medium text-foreground transition-[background-color,color,transform] duration-150 hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  {food.name}
-                </button>
-              );
-            })}
-          </div>
+          <ul className="mt-1">
+            {recent.map((food) => (
+              <li key={food.id}>
+                <ResultRow food={food} onSelect={onSelect} />
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -230,56 +214,11 @@ export function FoodSearch({
             <div className="mt-3">
               {remoteQueryActive && <SectionLabel>Локальная база</SectionLabel>}
               <ul>
-              {capped.map((food) => {
-                const Icon = categoryIcon(food.category);
-                const nutrition = nutritionOf(food);
-                return (
-                  <li key={food.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(food)}
-                      className="flex w-full items-center gap-3 rounded-2xl px-2.5 py-2 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Icon className="h-[18px] w-[18px]" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-1.5">
-                          <span className="truncate text-[15px] font-medium text-foreground">
-                            {food.name}
-                          </span>
-                          {food.sourceType === "user" && (
-                            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
-                              Ваш
-                            </span>
-                          )}
-                        </span>
-                        <span className="mt-px block truncate text-xs text-muted-foreground">
-                          {hasNutrition(food) ? (
-                            <>
-                              Б {formatNumber(nutrition.protein)} · Ж{" "}
-                              {formatNumber(nutrition.fat)} · У{" "}
-                              {formatNumber(nutrition.carbs)}
-                            </>
-                          ) : (
-                            "Нет данных о КБЖУ"
-                          )}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-sm font-bold tabular-nums text-foreground">
-                          {hasNutrition(food)
-                            ? formatNumber(nutrition.calories)
-                            : "—"}
-                        </span>
-                        <span className="block text-[10px] text-muted-foreground">
-                          ккал / 100 {baseUnitLabel(food)}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
+              {capped.map((food) => (
+                <li key={food.id}>
+                  <ResultRow food={food} onSelect={onSelect} />
+                </li>
+              ))}
               </ul>
             </div>
           )}
@@ -300,22 +239,20 @@ export function FoodSearch({
                     className="h-4 w-4 animate-spin"
                     aria-hidden
                   />
-                  Поиск продуктов…
+                  Ищем продукты…
                 </p>
               )}
               {remote.kind === "error" && (
                 <p className="mt-2 px-2.5 text-[13px] text-muted-foreground">
-                  Онлайн-поиск временно недоступен
+                  Не удалось выполнить поиск
                 </p>
               )}
               {offCapped.length > 0 && (
                 <ul className="mt-1">
                   {offCapped.map((product) => (
-                    <OffResultRow
-                      key={product.id}
-                      product={product}
-                      onSelect={onSelect}
-                    />
+                    <li key={product.id}>
+                      <ResultRow food={product} onSelect={onSelect} />
+                    </li>
                   ))}
                 </ul>
               )}
@@ -331,7 +268,7 @@ export function FoodSearch({
           {/* Local empty + remote still working */}
           {results.length === 0 && remote.kind === "loading" && (
             <p className="mt-4 text-center text-[13px] text-muted-foreground">
-              Ищем продукт онлайн…
+              Ищем продукты…
             </p>
           )}
         </>
@@ -349,58 +286,59 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** One Open Food Facts result row (branded product). */
-function OffResultRow({
-  product,
+/**
+ * One search result row (Stage 11): fast scanning — name, brand when
+ * available and the calorie reference. No macro breakdowns here; the
+ * details live on the quantity step.
+ */
+function ResultRow({
+  food,
   onSelect,
 }: {
-  product: BrandedProduct;
+  food: FoodItem;
   onSelect: (food: FoodItem) => void;
 }) {
-  const Icon = categoryIcon(product.category);
-  const nutrition = nutritionOf(product);
-  const known = hasNutrition(product);
+  const Icon = categoryIcon(food.category);
+  const nutrition = nutritionOf(food);
+  const known = hasNutrition(food);
+  // Second line only when it carries information: brand, or the
+  // honest "no nutrition data" note. Never a redundant macro dump.
+  const meta = food.brand ? food.brand : known ? null : "Нет данных о КБЖУ";
   return (
-    <li>
-      <button
-        type="button"
-        onClick={() => onSelect(product)}
-        className="flex w-full items-center gap-3 rounded-2xl px-2.5 py-2 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.06] text-muted-foreground">
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-medium text-foreground">
-            {product.name}
+    <button
+      type="button"
+      onClick={() => onSelect(food)}
+      className="flex min-h-[52px] w-full items-center gap-3 rounded-2xl px-2.5 py-2 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="truncate text-[15px] font-medium text-foreground">
+            {food.name}
           </span>
+          {food.sourceType === "user" && (
+            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
+              Ваш
+            </span>
+          )}
+        </span>
+        {meta && (
           <span className="mt-px block truncate text-xs text-muted-foreground">
-            {product.brand && (
-              <span className="font-semibold text-foreground/80">
-                {product.brand}
-                {" · "}
-              </span>
-            )}
-            {known ? (
-              <>
-                Б {formatNumber(nutrition.protein)} · Ж{" "}
-                {formatNumber(nutrition.fat)} · У {formatNumber(nutrition.carbs)}
-              </>
-            ) : (
-              "Нет данных о КБЖУ"
-            )}
+            {meta}
           </span>
+        )}
+      </span>
+      <span className="shrink-0 text-right">
+        <span className="block text-sm font-semibold tabular-nums text-foreground">
+          {known ? formatNumber(nutrition.calories) : "—"}
         </span>
-        <span className="shrink-0 text-right">
-          <span className="block text-sm font-bold tabular-nums text-foreground">
-            {known ? formatNumber(nutrition.calories) : "—"}
-          </span>
-          <span className="block text-[10px] text-muted-foreground">
-            ккал / 100 {baseUnitLabel(product)}
-          </span>
+        <span className="block text-[10px] text-muted-foreground">
+          ккал / 100 {baseUnitLabel(food)}
         </span>
-      </button>
-    </li>
+      </span>
+    </button>
   );
 }
 
@@ -418,14 +356,14 @@ function EmptyState({
   let hint = "Попробуйте изменить запрос";
   if (remoteActive) {
     if (remote.kind === "loading") {
-      title = "Ищем продукт онлайн…";
+      title = "Ищем продукты…";
       hint = "Локально ничего не нашлось";
     } else if (remote.kind === "empty") {
-      title = "Ничего не нашли";
-      hint = "Попробуйте другое название или добавьте продукт вручную";
+      title = "Ничего не найдено";
+      hint = "Попробуйте другое название или создайте свой продукт";
     } else if (remote.kind === "error") {
-      title = "Онлайн-поиск временно недоступен";
-      hint = "Попробуйте другое название или добавьте продукт вручную";
+      title = "Не удалось выполнить поиск";
+      hint = "Проверьте соединение или создайте свой продукт";
     }
   }
   return (

@@ -131,6 +131,7 @@ export function Dashboard() {
       <AddFoodModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
+        onReopen={() => setAddOpen(true)}
         preselectedMeal={addMeal}
       />
     </div>

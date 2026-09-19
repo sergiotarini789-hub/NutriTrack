@@ -19,7 +19,11 @@ export function QuickAddButton() {
         <Plus className="h-5 w-5" />
         Добавить еду
       </Button>
-      <AddFoodModal open={open} onClose={() => setOpen(false)} />
+      <AddFoodModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onReopen={() => setOpen(true)}
+      />
     </>
   );
 }

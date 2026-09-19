@@ -165,6 +165,7 @@ export function FoodsExplorer() {
           setAddOpen(false);
           setAddFoodId(null);
         }}
+        onReopen={() => setAddOpen(true)}
         preselectedFoodId={addFoodId}
       />
       <Modal

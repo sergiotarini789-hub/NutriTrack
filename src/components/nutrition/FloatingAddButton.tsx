@@ -24,7 +24,11 @@ export function FloatingAddButton() {
       >
         <Plus className="h-6 w-6" strokeWidth={2.5} />
       </button>
-      <AddFoodModal open={open} onClose={() => setOpen(false)} />
+      <AddFoodModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onReopen={() => setOpen(true)}
+      />
     </>
   );
 }

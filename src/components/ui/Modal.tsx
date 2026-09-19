@@ -14,6 +14,8 @@ interface ModalProps {
   footer?: ReactNode;
   /** Optional back action shown next to the close button. */
   onBack?: () => void;
+  /** Desktop width: "md" (default) or the wider "lg" used by add-food. */
+  size?: "md" | "lg";
 }
 
 const FOCUSABLE_SELECTOR =
@@ -26,7 +28,7 @@ const FOCUSABLE_SELECTOR =
  */
 const EXIT_MS = 200;
 
-export function Modal({ open, onClose, title, children, footer, onBack }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, onBack, size = "md" }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -114,7 +116,8 @@ export function Modal({ open, onClose, title, children, footer, onBack }: ModalP
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          "relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-card shadow-2xl outline-none sm:max-h-[85dvh] sm:rounded-[28px]",
+          "relative flex max-h-[92dvh] w-full flex-col rounded-t-[28px] bg-card shadow-2xl outline-none sm:max-h-[85dvh] sm:rounded-[28px]",
+          size === "lg" ? "max-w-lg sm:max-w-2xl" : "max-w-lg",
           exiting
             ? "animate-sheet-out sm:animate-scale-out"
             : "animate-sheet-in sm:animate-scale-in",

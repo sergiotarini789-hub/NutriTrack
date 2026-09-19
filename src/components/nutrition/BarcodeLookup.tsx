@@ -34,6 +34,8 @@ interface BarcodeLookupProps {
   onFound: (food: FoodProduct) => void;
   /** Open the manual creation flow (prefilled with what we know). */
   onManualCreate: (prefill: { barcode: string; name?: string; brand?: string }) => void;
+  /** Focuses the product search field ("Поискать продукт"). */
+  onSearchFocus?: () => void;
 }
 
 type LookupState =
@@ -50,7 +52,7 @@ type LookupState =
  * while the request is in flight; "not found" and "error" are distinct
  * outcomes. Entirely in Russian.
  */
-export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
+export function BarcodeLookup({ onFound, onManualCreate, onSearchFocus }: BarcodeLookupProps) {
   const { lookupBarcode } = useDiary();
   const [value, setValue] = useState("");
   const [state, setState] = useState<LookupState>({ kind: "idle" });
@@ -187,21 +189,37 @@ export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
             aria-hidden
           />
           <p className="mt-2.5 text-[15px] font-medium text-foreground">
-            Товар не найден
+            Продукт не найден
           </p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
             Мы не нашли этот штрихкод в Open Food Facts.
           </p>
-          <Button
-            variant="soft"
-            className="mt-4"
-            onClick={() =>
-              onManualCreate({ barcode: state.barcode })
-            }
-          >
-            <Plus className="h-4 w-4" />
-            Добавить вручную
-          </Button>
+          {/* The user always has a next action (Stage 11). */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {canScan && (
+              <Button
+                variant="soft"
+                onClick={() => setScannerOpen(true)}
+              >
+                <ScanBarcode className="h-4 w-4" />
+                Повторить сканирование
+              </Button>
+            )}
+            {onSearchFocus && (
+              <Button variant="soft" onClick={onSearchFocus}>
+                Поискать продукт
+              </Button>
+            )}
+            <Button
+              variant="soft"
+              onClick={() =>
+                onManualCreate({ barcode: state.barcode })
+              }
+            >
+              <Plus className="h-4 w-4" />
+              Создать свой продукт
+            </Button>
+          </div>
         </div>
       )}
 
@@ -234,7 +252,7 @@ export function BarcodeLookup({ onFound, onManualCreate }: BarcodeLookupProps) {
             }
           >
             <Plus className="h-4 w-4" />
-            Добавить вручную
+            Создать свой продукт
           </Button>
         </div>
       )}
