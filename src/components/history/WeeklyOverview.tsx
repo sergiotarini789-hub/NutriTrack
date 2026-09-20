@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
+import { dayAverages, inNormCount } from "@/lib/history";
 import type { HistoryDayInfo } from "@/lib/types";
 
 interface WeeklyOverviewProps {
@@ -19,15 +20,9 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
     1,
     Math.ceil(Math.max(...values, target ?? 0) * 1.08),
   );
-  const daysWithData = values.length;
-  const average =
-    daysWithData > 0
-      ? Math.round(values.reduce((sum, value) => sum + value, 0) / daysWithData)
-      : null;
-  const inNormCount =
-    target === null
-      ? null
-      : values.filter((value) => value <= target).length;
+  // Averages (calories AND macros) include only days with data.
+  const averages = dayAverages(days);
+  const inNorm = inNormCount(days, target);
 
   return (
     <Card className="p-5 sm:p-6">
@@ -39,6 +34,11 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
           последние 7 дней
         </span>
       </div>
+      {target !== null && (
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Сравнение с текущей нормой
+        </p>
+      )}
 
       {/* Chart */}
       <div className="relative mt-6 h-40 sm:h-44">
@@ -117,20 +117,45 @@ export function WeeklyOverview({ days, target }: WeeklyOverviewProps) {
         ))}
       </div>
 
-      {/* Summary */}
+      {/* Summary: averages over days WITH data, never counting empty days */}
       <div className="mt-6 grid grid-cols-2 divide-x divide-border/70 border-t border-border/70 pt-5">
         <div className="pr-4">
           <p className="text-[13px] text-muted-foreground">Среднее за день</p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
-            {average === null ? "—" : `${formatNumber(average)} ккал`}
-          </p>
+          {averages === null ? (
+            <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
+              —
+            </p>
+          ) : (
+            <>
+              <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
+                {formatNumber(averages.calories)}{" "}
+                <span className="text-[13px] font-medium text-muted-foreground">
+                  ккал
+                </span>
+              </p>
+              <p className="mt-0.5 text-[13px] tabular-nums text-muted-foreground">
+                Б {formatNumber(averages.protein)} · Ж{" "}
+                {formatNumber(averages.fat)} · У {formatNumber(averages.carbs)}{" "}
+                г
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground/70">
+                по {averages.daysWithData}{" "}
+                {averages.daysWithData === 1
+                  ? "дню"
+                  : averages.daysWithData < 5
+                    ? "дням"
+                    : "дням"}{" "}
+                с записями
+              </p>
+            </>
+          )}
         </div>
         <div className="pl-4">
           <p className="text-[13px] text-muted-foreground">В норме</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-foreground">
-            {inNormCount === null
+            {inNorm === null
               ? "—"
-              : `${inNormCount} из ${daysWithData} дней`}
+              : `${inNorm.count} из ${inNorm.daysWithData} дней`}
           </p>
         </div>
       </div>

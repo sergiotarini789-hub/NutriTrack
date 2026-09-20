@@ -15,6 +15,12 @@ interface TodaySummaryProps {
   totals: NutritionSummary;
   /** Effective daily targets; null while the profile is incomplete. */
   targets: NutritionTargets | null;
+  /**
+   * Show the "fill your profile" hint when targets are null (default,
+   * Today screen). History passes false: a day without a target still
+   * shows its numbers — comparison is simply omitted.
+   */
+  profileHint?: boolean;
 }
 
 /** Macro descriptor for the compact strip. */
@@ -31,9 +37,51 @@ const MACROS = [
  * thin progress ring, and macro lines with hairline bars. No KPI
  * cards, no card-in-card, no oversized analytics chart.
  */
-export function TodaySummary({ totals, targets }: TodaySummaryProps) {
+export function TodaySummary({
+  totals,
+  targets,
+  profileHint = true,
+}: TodaySummaryProps) {
   const animated = useMountedForAnimation();
   const display = useCountUp(totals.calories, 600);
+
+  // No target and no hint requested (history): numbers only, never an
+  // invented target and never a profile call-to-action.
+  if (!targets && !profileHint) {
+    return (
+      <div>
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-[34px] font-semibold leading-none tabular-nums tracking-tight text-foreground sm:text-[38px]">
+            {formatNumber(Math.round(display))}
+          </span>
+          <span className="text-[15px] text-muted-foreground">ккал</span>
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-3 sm:gap-4">
+          {MACROS.map((macro) => (
+            <p
+              key={macro.key}
+              className="flex items-baseline gap-1.5 text-[12px] text-muted-foreground"
+              aria-label={`${macro.label}: ${formatNumber(Math.round(totals[macro.key]))} г`}
+            >
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 shrink-0 self-center rounded-full",
+                  macro.color,
+                )}
+              />
+              <span className="font-medium">{macro.short}</span>
+              <span className="ml-auto truncate tabular-nums">
+                <span className="font-semibold text-foreground">
+                  {formatNumber(Math.round(totals[macro.key]))}
+                </span>{" "}
+                г
+              </span>
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Incomplete profile: no invented target — ask for the profile.
   if (!targets) {
