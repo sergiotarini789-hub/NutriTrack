@@ -7,11 +7,19 @@ import { cn } from "@/lib/cn";
 import { useDiary } from "@/lib/diary";
 import { parseAmountInput } from "@/lib/nutrition";
 import { normalizeBarcode } from "@/lib/barcode";
-import type { FoodItem } from "@/lib/types";
+import type { FoodItem, UserProduct } from "@/lib/types";
 
 interface CustomFoodFormProps {
-  /** Called with the created food. */
-  onCreated: (food: FoodItem) => void;
+  /** Called with the created food (create mode). */
+  onCreated?: (food: FoodItem) => void;
+  /**
+   * Product to edit (Stage 13A). When provided, the form switches to
+   * update mode: fields are prefilled from the product and the submit
+   * uses updateUserFood instead of creating a new product.
+   */
+  product?: UserProduct | null;
+  /** Called with the updated product; falls back to onCreated. */
+  onUpdated?: (food: FoodItem) => void;
   /** Prefill from a barcode lookup that found no usable product. */
   initialBarcode?: string;
   initialName?: string;
@@ -19,27 +27,45 @@ interface CustomFoodFormProps {
 }
 
 /**
- * Form for creating a custom product. Values are per 100 g / 100 ml;
- * an optional portion size adds a "порция" serving unit. Can be
- * prefilled when the user arrives from an unsuccessful barcode lookup.
+ * Form for creating (or, with `product`, editing) a custom product.
+ * Values are per 100 g / 100 ml; an optional portion size adds a
+ * "порция" serving unit. Can be prefilled when the user arrives from
+ * an unsuccessful barcode lookup.
  */
 export function CustomFoodForm({
   onCreated,
+  product = null,
+  onUpdated,
   initialBarcode,
   initialName,
   initialBrand,
 }: CustomFoodFormProps) {
-  const { addUserFood } = useDiary();
-  const [name, setName] = useState(initialName ?? "");
-  const [baseUnit, setBaseUnit] = useState<"g" | "ml">("g");
-  const [calories, setCalories] = useState("");
-  const [protein, setProtein] = useState("");
-  const [fat, setFat] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [portion, setPortion] = useState("");
-  const [brand, setBrand] = useState(initialBrand ?? "");
-  const [barcode, setBarcode] = useState(initialBarcode ?? "");
-  const [isBranded, setIsBranded] = useState(Boolean(initialBrand));
+  const { addUserFood, updateUserFood } = useDiary();
+  const editing = product !== null;
+  const [name, setName] = useState(product?.name ?? initialName ?? "");
+  const [baseUnit, setBaseUnit] = useState<"g" | "ml">(product?.baseUnit ?? "g");
+  const [calories, setCalories] = useState(
+    product?.calories !== undefined ? String(product.calories) : "",
+  );
+  const [protein, setProtein] = useState(
+    product?.protein !== undefined ? String(product.protein) : "",
+  );
+  const [fat, setFat] = useState(
+    product?.fat !== undefined ? String(product.fat) : "",
+  );
+  const [carbs, setCarbs] = useState(
+    product?.carbs !== undefined ? String(product.carbs) : "",
+  );
+  // The portion size lives as the base of the "порция" unit.
+  const [portion, setPortion] = useState(() => {
+    const servingUnit = product?.units.find((unit) => unit.kind === "serving");
+    return servingUnit ? String(servingUnit.base) : "";
+  });
+  const [brand, setBrand] = useState(product?.brand ?? initialBrand ?? "");
+  const [barcode, setBarcode] = useState(product?.barcode ?? initialBarcode ?? "");
+  const [isBranded, setIsBranded] = useState(
+    product ? product.isBranded : Boolean(initialBrand),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState(false);
 
@@ -78,6 +104,25 @@ export function CustomFoodForm({
     setTouched(true);
     if (!validate()) return;
 
+    // Edit mode: update the existing product through the same diary
+    // API the details modal would use; storage semantics unchanged.
+    if (editing && product) {
+      const updated = updateUserFood(product.id, {
+        name,
+        calories: parseAmountInput(calories) ?? 0,
+        protein: parseAmountInput(protein) ?? 0,
+        fat: parseAmountInput(fat) ?? 0,
+        carbs: parseAmountInput(carbs) ?? 0,
+        baseUnit,
+        portionSize: parseAmountInput(portion),
+        isBranded,
+        brand,
+        barcode,
+      });
+      if (updated) (onUpdated ?? onCreated)?.(updated);
+      return;
+    }
+
     const food = addUserFood({
       name,
       calories: parseAmountInput(calories) ?? 0,
@@ -105,7 +150,7 @@ export function CustomFoodForm({
     setErrors({});
     setTouched(false);
 
-    onCreated(food);
+    onCreated?.(food);
   }
 
   return (
@@ -227,8 +272,14 @@ export function CustomFoodForm({
         <span className="text-sm text-foreground">Это брендовый продукт</span>
       </label>
 
+      {editing && (
+        <p className="text-[13px] leading-relaxed text-muted-foreground" role="note">
+          Записи в дневнике пересчитаются по новым значениям.
+        </p>
+      )}
+
       <Button size="lg" className="w-full" onClick={handleSubmit}>
-        Создать продукт
+        {editing ? "Сохранить" : "Создать продукт"}
       </Button>
     </div>
   );

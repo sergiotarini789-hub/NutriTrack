@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Plus, Search, SearchX, X } from "lucide-react";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { CustomFoodForm } from "@/components/nutrition/CustomFoodForm";
@@ -14,7 +14,7 @@ import {
   searchFoods,
 } from "@/lib/food-data";
 import { formatNumber, pluralize } from "@/lib/format";
-import type { FoodItem } from "@/lib/types";
+import type { FoodItem, UserProduct } from "@/lib/types";
 import { CategoryChips, type CategoryChip } from "./CategoryChips";
 import { FoodCard } from "./FoodCard";
 import { FoodDetailsModal } from "./FoodDetailsModal";
@@ -25,10 +25,12 @@ export function FoodsExplorer() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>(ALL_CATEGORY);
   const [detailsFood, setDetailsFood] = useState<FoodItem | null>(null);
+  const [editFood, setEditFood] = useState<UserProduct | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addFoodId, setAddFoodId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filtered = useMemo(
     () => searchFoods(allFoods, query, category),
@@ -40,13 +42,16 @@ export function FoodsExplorer() {
       (item) => item.id !== "user",
     ).map((item) => ({ id: item.id, name: item.name, icon: item.icon }));
     const list: CategoryChip[] = [{ id: ALL_CATEGORY, name: "Все" }, ...base];
-    if (userFoods.length > 0) {
-      list.push({
-        id: "user",
-        name: "Мои продукты",
-        icon: CATEGORIES.find((item) => item.id === "user")?.icon,
-      });
-    }
+    // The personal library is always reachable (Stage 13A); the count
+    // makes its size visible at a glance.
+    list.push({
+      id: "user",
+      name:
+        userFoods.length > 0
+          ? `Мои продукты · ${formatNumber(userFoods.length)}`
+          : "Мои продукты",
+      icon: CATEGORIES.find((item) => item.id === "user")?.icon,
+    });
     return list;
   }, [userFoods]);
 
@@ -119,8 +124,31 @@ export function FoodsExplorer() {
         ))}
       </div>
 
-      {/* Empty state */}
-      {filtered.length === 0 && (
+      {/* Empty states */}
+      {filtered.length === 0 &&
+      category === "user" &&
+      userFoods.length === 0 &&
+      !query.trim() ? (
+        // The personal library exists but is empty (Stage 13A).
+        <div className="mt-3 flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-14 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Plus className="h-6 w-6" />
+          </span>
+          <p className="mt-4 text-[15px] font-medium text-foreground">
+            Своих продуктов пока нет
+          </p>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Создайте продукт по этикетке — он всегда будет под рукой
+          </p>
+          <Button
+            className="mt-5"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Создать продукт
+          </Button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="mt-3 flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-14 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground">
             <SearchX className="h-6 w-6" />
@@ -147,7 +175,7 @@ export function FoodsExplorer() {
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       <p className="mt-6 text-xs text-muted-foreground">
         Значения носят справочный характер
@@ -158,7 +186,29 @@ export function FoodsExplorer() {
         food={detailsFood}
         onClose={() => setDetailsFood(null)}
         onAddToDiary={handleAddToDiary}
+        onEdit={(food) => {
+          setDetailsFood(null);
+          setEditFood(food);
+        }}
       />
+      <Modal
+        open={editFood !== null}
+        onClose={() => setEditFood(null)}
+        title="Изменить продукт"
+      >
+        {editFood && (
+          <CustomFoodForm
+            key={editFood.id}
+            product={editFood}
+            onUpdated={(food) => {
+              setEditFood(null);
+              if (toastTimer.current) clearTimeout(toastTimer.current);
+              setToast(`Продукт «${food.name}» обновлён`);
+              toastTimer.current = setTimeout(() => setToast(null), 2500);
+            }}
+          />
+        )}
+      </Modal>
       <AddFoodModal
         open={addOpen}
         onClose={() => {

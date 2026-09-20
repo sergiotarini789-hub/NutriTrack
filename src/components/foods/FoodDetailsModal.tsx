@@ -1,25 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { useDiary } from "@/lib/diary";
 import { categoryIcon, getCategory } from "@/lib/food-data";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, pluralize } from "@/lib/format";
 import {
   baseUnitLabel,
   formatServing,
   hasNutrition,
   sourceLabelOf,
 } from "@/lib/nutrition";
-import type { FoodItem } from "@/lib/types";
+import type { FoodItem, UserProduct } from "@/lib/types";
 
 interface FoodDetailsModalProps {
   food: FoodItem | null;
   onClose: () => void;
   onAddToDiary: (food: FoodItem) => void;
+  /** Opens the edit flow (user products only, Stage 13A). */
+  onEdit?: (food: UserProduct) => void;
 }
 
 /** Food details: per-100 values, servings, source and diary shortcut. */
@@ -27,10 +29,23 @@ export function FoodDetailsModal({
   food,
   onClose,
   onAddToDiary,
+  onEdit,
 }: FoodDetailsModalProps) {
-  const { deleteUserFood } = useDiary();
+  const { deleteUserFood, entries } = useDiary();
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset the confirmation step whenever another product is opened.
+  useEffect(() => {
+    setConfirmDelete(false);
+  }, [food?.id]);
+
+  // How many diary entries reference this product (informational only —
+  // entries are never modified by product deletion).
+  const usageCount = food
+    ? entries.filter((entry) => entry.foodId === food.id).length
+    : 0;
 
   function handleDelete() {
     if (!food) return;
@@ -38,6 +53,7 @@ export function FoodDetailsModal({
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(`Продукт «${food.name}» удалён`);
     toastTimer.current = setTimeout(() => setToast(null), 2500);
+    setConfirmDelete(false);
     onClose();
   }
 
@@ -49,21 +65,71 @@ export function FoodDetailsModal({
         title={food?.name ?? ""}
         footer={
           food ? (
-            <div className="flex gap-3">
-              {food.sourceType === "user" && (
-                <Button variant="danger" size="lg" onClick={handleDelete}>
-                  <Trash2 className="h-4 w-4" />
-                  Удалить
+            confirmDelete ? (
+              <div role="alertdialog" aria-label="Удалить продукт?">
+                <p className="text-center text-[15px] font-semibold text-foreground">
+                  Удалить продукт?
+                </p>
+                {usageCount > 0 && (
+                  <p className="mt-1 text-center text-[13px] text-muted-foreground">
+                    Использован в {formatNumber(usageCount)}{" "}
+                    {pluralize(usageCount, "записи", "записях", "записях")}
+                  </p>
+                )}
+                <div className="mt-4 flex gap-3">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="flex-1"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="lg"
+                    className="flex-1"
+                    onClick={handleDelete}
+                  >
+                    Удалить
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {food.type === "user" && (
+                  <div className="flex gap-3">
+                    {onEdit && (
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        className="flex-1"
+                        onClick={() => onEdit(food)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Изменить
+                      </Button>
+                    )}
+                    <Button
+                      variant="danger"
+                      size="lg"
+                      className={onEdit ? undefined : "flex-1"}
+                      onClick={() => setConfirmDelete(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Удалить
+                    </Button>
+                  </div>
+                )}
+                <Button
+                  size="lg"
+                  className="w-full rounded-full"
+                  onClick={() => onAddToDiary(food)}
+                >
+                  Добавить в дневник
                 </Button>
-              )}
-              <Button
-                size="lg"
-                className="flex-1 rounded-full"
-                onClick={() => onAddToDiary(food)}
-              >
-                Добавить в дневник
-              </Button>
-            </div>
+              </div>
+            )
           ) : undefined
         }
       >

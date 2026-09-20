@@ -124,7 +124,8 @@ interface DiaryContextValue {
   setTargetMode: (mode: TargetMode) => void;
   setProfile: (profile: UserProfile) => void;
   addUserFood: (input: UserFoodInput) => FoodProduct;
-  updateUserFood: (id: string, changes: UserProductUpdate) => void;
+  /** Updates a user product; returns it (or undefined when missing). */
+  updateUserFood: (id: string, changes: UserProductUpdate) => UserProduct | undefined;
   deleteUserFood: (id: string) => void;
 }
 
@@ -332,8 +333,9 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
 
   const updateUserFood = useCallback(
     (id: string, changes: UserProductUpdate) => {
-      repository.updateUserProduct(id, changes);
+      const updated = repository.updateUserProduct(id, changes);
       setUserFoods(loadUserFoods());
+      return updated;
     },
     [repository],
   );
