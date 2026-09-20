@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { categoryIcon } from "@/lib/food-data";
 import { formatNumber } from "@/lib/format";
 import { baseUnitLabel } from "@/lib/nutrition";
@@ -7,6 +8,13 @@ interface FoodCardProps {
   food: FoodItem;
   /** When provided, the card becomes a clickable button. */
   onClick?: () => void;
+  /**
+   * Quick add-to-diary action (Stage 13B). When provided alongside
+   * onClick, a compact 44px "+" control sits at the card's trailing
+   * edge; tapping the card itself still opens the details. Reuses the
+   * existing Add Food flow — no separate calculation path.
+   */
+  onQuickAdd?: () => void;
 }
 
 /**
@@ -14,10 +22,15 @@ interface FoodCardProps {
  * secondary macro line and a subtle source note; the per-100 calorie
  * value sits on the right.
  */
-export function FoodCard({ food, onClick }: FoodCardProps) {
+export function FoodCard({ food, onClick, onQuickAdd }: FoodCardProps) {
   const Icon = categoryIcon(food.category);
   const isUser = food.sourceType === "user";
   const sourceLabel = isUser ? "Ваш продукт" : "Справочное значение";
+  // Brand joins the source note so real branded products (user and
+  // OFF) stay identifiable without extra card weight.
+  const metaLabel = food.brand
+    ? `${sourceLabel} · ${food.brand}`
+    : sourceLabel;
 
   const content = (
     <>
@@ -45,7 +58,7 @@ export function FoodCard({ food, onClick }: FoodCardProps) {
           {formatNumber(food.carbs ?? 0)}
         </p>
         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-          {sourceLabel}
+          {metaLabel}
         </p>
       </div>
 
@@ -59,6 +72,33 @@ export function FoodCard({ food, onClick }: FoodCardProps) {
       </div>
     </>
   );
+
+  // Card with the trailing quick-add control: the card surface keeps
+  // its styling, the main area opens details and the "+" adds straight
+  // to the diary via the existing Add Food quantity step.
+  if (onClick && onQuickAdd) {
+    return (
+      <div className="flex items-center gap-1 rounded-2xl bg-card p-2.5 pl-3 text-left shadow-[0_1px_2px_rgba(8,15,10,0.05)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-primary/[0.04] hover:shadow-[0_2px_8px_rgba(8,15,10,0.07)] active:scale-[0.99] sm:p-3 sm:pl-3.5 dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={`Открыть: ${food.name}`}
+          className="flex min-w-0 flex-1 items-center gap-3.5 rounded-xl py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          {content}
+        </button>
+        <button
+          type="button"
+          onClick={onQuickAdd}
+          aria-label={`Добавить «${food.name}» в дневник`}
+          title="Добавить в дневник"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-[background-color,transform] duration-150 hover:bg-primary/20 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 motion-reduce:transition-none motion-reduce:active:scale-100"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      </div>
+    );
+  }
 
   if (onClick) {
     return (

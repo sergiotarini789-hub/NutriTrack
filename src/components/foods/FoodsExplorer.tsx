@@ -41,22 +41,35 @@ export function FoodsExplorer() {
     const base: CategoryChip[] = CATEGORIES.filter(
       (item) => item.id !== "user",
     ).map((item) => ({ id: item.id, name: item.name, icon: item.icon }));
-    const list: CategoryChip[] = [{ id: ALL_CATEGORY, name: "Все" }, ...base];
-    // The personal library is always reachable (Stage 13A); the count
-    // makes its size visible at a glance.
-    list.push({
-      id: "user",
-      name:
-        userFoods.length > 0
-          ? `Мои продукты · ${formatNumber(userFoods.length)}`
-          : "Мои продукты",
-      icon: CATEGORIES.find((item) => item.id === "user")?.icon,
-    });
-    return list;
+    // «Все» and the personal library lead the row (Stage 13B) so the
+    // user's own products never require scrolling past every category;
+    // the count makes the library size visible at a glance.
+    return [
+      { id: ALL_CATEGORY, name: "Все" },
+      {
+        id: "user",
+        name:
+          userFoods.length > 0
+            ? `Мои продукты · ${formatNumber(userFoods.length)}`
+            : "Мои продукты",
+        icon: CATEGORIES.find((item) => item.id === "user")?.icon,
+      },
+      ...base,
+    ];
   }, [userFoods]);
+
+  /** Library mode: the personal collection itself, not a search. */
+  const libraryMode =
+    category === "user" && !query.trim() && userFoods.length > 0;
 
   function handleAddToDiary(food: FoodItem) {
     setDetailsFood(null);
+    setAddFoodId(food.id);
+    setAddOpen(true);
+  }
+
+  /** Card "+" — jumps straight into the Add Food quantity step. */
+  function handleQuickAdd(food: FoodItem) {
     setAddFoodId(food.id);
     setAddOpen(true);
   }
@@ -103,24 +116,47 @@ export function FoodsExplorer() {
           categories={categories}
           selected={category}
           onSelect={setCategory}
+          pinnedIds={[ALL_CATEGORY, "user"]}
         />
       </div>
 
-      <p className="mt-3 text-sm text-muted-foreground">
-        {filtered.length > 0
-          ? `Найдено: ${formatNumber(filtered.length)} ${pluralize(
-              filtered.length,
-              "продукт",
-              "продукта",
-              "продуктов",
-            )}`
-          : "Ничего не найдено"}
-      </p>
+      {libraryMode ? (
+        <div className="mt-3">
+          <h2 className="text-[15px] font-semibold text-foreground">
+            Мои продукты
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            {formatNumber(userFoods.length)}{" "}
+            {pluralize(userFoods.length, "продукт", "продукта", "продуктов")} ·
+            сначала новые
+          </p>
+        </div>
+      ) : category === "user" && !query.trim() ? (
+        // Empty library: the dedicated empty state below carries the
+        // context; no redundant "Ничего не найдено" counter.
+        null
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          {filtered.length > 0
+            ? `Найдено: ${formatNumber(filtered.length)} ${pluralize(
+                filtered.length,
+                "продукт",
+                "продукта",
+                "продуктов",
+              )}`
+            : "Ничего не найдено"}
+        </p>
+      )}
 
       {/* Results */}
       <div className="mt-3 grid grid-cols-1 gap-2.5 md:grid-cols-2">
         {filtered.map((food) => (
-          <FoodCard key={food.id} food={food} onClick={() => setDetailsFood(food)} />
+          <FoodCard
+            key={food.id}
+            food={food}
+            onClick={() => setDetailsFood(food)}
+            onQuickAdd={() => handleQuickAdd(food)}
+          />
         ))}
       </div>
 
