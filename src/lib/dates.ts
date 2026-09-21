@@ -51,3 +51,33 @@ export function weekdayShort(date: Date): string {
 export function formatFullDate(date: Date): string {
   return `${formatDayMonth(date)}, ${weekdayLong(date)}`;
 }
+
+/** Parses a "YYYY-MM-DD" key into a local Date (no UTC shifts). */
+export function dateFromKey(key: string): Date {
+  return new Date(
+    Number(key.slice(0, 4)),
+    Number(key.slice(5, 7)) - 1,
+    Number(key.slice(8, 10)),
+  );
+}
+
+/**
+ * The date an Add Food flow may write (Stage 14A): a well-formed
+ * "YYYY-MM-DD" key that is not in the future. Anything else — missing,
+ * malformed or a future key — resolves to undefined, which the diary
+ * reads as "today" (the normal Today flow). A future entry can never
+ * be created through this boundary.
+ */
+export function loggableDate(preselected?: string | null): string | undefined {
+  if (!preselected || !/^\d{4}-\d{2}-\d{2}$/.test(preselected)) {
+    return undefined;
+  }
+  return preselected <= todayKey() ? preselected : undefined;
+}
+
+/** e.g. "Среда, 16 сентября" — weekday-first label for date context (Stage 14A). */
+export function formatWeekdayDayMonth(key: string): string {
+  const date = dateFromKey(key);
+  const weekday = weekdayLong(date);
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${formatDayMonth(date)}`;
+}

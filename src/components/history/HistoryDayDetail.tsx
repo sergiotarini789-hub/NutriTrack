@@ -1,7 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { TodaySummary } from "@/components/dashboard/TodaySummary";
+import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
+import { Button } from "@/components/ui/Button";
 import { MEALS } from "@/lib/app-data";
 import { addDays, dateKey, formatDayMonth, todayKey, weekdayLong } from "@/lib/dates";
 import {
@@ -33,7 +36,10 @@ interface HistoryDayDetailProps {
  * Read-only details of one historical day (Stage 12): "Сегодня, but
  * read-only". Compact nutrition summary against the CURRENT effective
  * target (explicitly labelled — no historical target snapshots exist),
- * then the meals with their entries. No editing in this stage.
+ * then the meals with their entries. Stage 14A adds the only write
+ * action: «Добавить еду» opens the standard Add Food flow with THIS
+ * day preselected, so forgotten meals can be backfilled. Existing
+ * entries remain read-only.
  */
 export function HistoryDayDetail({
   dayKey: selectedDay,
@@ -42,6 +48,7 @@ export function HistoryDayDetail({
   onBackToList,
 }: HistoryDayDetailProps) {
   const { entries, findFood } = useDiary();
+  const [addOpen, setAddOpen] = useState(false);
   const date = new Date(
     Number(selectedDay.slice(0, 4)),
     Number(selectedDay.slice(5, 7)) - 1,
@@ -103,6 +110,18 @@ export function HistoryDayDetail({
         </button>
       </div>
 
+      {/* Stage 14A: add food to THIS day. The date travels into the
+          flow, so the entry is written here, not to today. */}
+      <Button
+        variant="secondary"
+        size="lg"
+        className="w-full rounded-full"
+        onClick={() => setAddOpen(true)}
+      >
+        <Plus className="h-5 w-5" />
+        Добавить еду
+      </Button>
+
       {dayEntries.length === 0 ? (
         /* Honest empty day — no invented values */
         <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
@@ -143,6 +162,13 @@ export function HistoryDayDetail({
           </div>
         </>
       )}
+
+      <AddFoodModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onReopen={() => setAddOpen(true)}
+        preselectedDate={selectedDay}
+      />
     </section>
   );
 }

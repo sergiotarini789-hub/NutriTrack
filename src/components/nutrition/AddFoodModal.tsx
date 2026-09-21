@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { defaultMealForNow, mealName } from "@/lib/app-data";
 import { useDiary } from "@/lib/diary";
+import {
+  dateFromKey,
+  formatDayMonth,
+  formatWeekdayDayMonth,
+  loggableDate,
+  todayKey,
+} from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 import {
   formatAmountInUnit,
@@ -36,6 +43,12 @@ interface AddFoodModalProps {
   preselectedMeal?: MealType | null;
   /** Food preset, e.g. "Добавить в дневник" from the products page. */
   preselectedFoodId?: string | null;
+  /**
+   * Date preset (Stage 14A), e.g. "2026-09-16" when adding to a
+   * historical day from History. Absent/null (and any invalid or
+   * future key) means "today" — the Today flow is unchanged.
+   */
+  preselectedDate?: string | null;
   /** Reopens the flow — used by the "Добавить ещё" toast action. */
   onReopen?: () => void;
 }
@@ -51,9 +64,20 @@ export function AddFoodModal({
   onClose,
   preselectedMeal = null,
   preselectedFoodId = null,
+  preselectedDate = null,
   onReopen,
 }: AddFoodModalProps) {
   const { addEntry, findFood, adoptOffProduct } = useDiary();
+
+  // Stage 14A: the date this flow writes. A historical day passes its
+  // key explicitly; anything invalid (or absent) resolves to undefined,
+  // which the diary reads as "today". The meal/time defaults never
+  // touch the date.
+  const entryDate = loggableDate(preselectedDate);
+  const historicalContext =
+    entryDate !== undefined && entryDate !== todayKey()
+      ? formatWeekdayDayMonth(entryDate)
+      : null;
   const [step, setStep] = useState<Step>("search");
   const [meal, setMeal] = useState<MealType | null>(null);
   const [foodId, setFoodId] = useState<string | null>(null);
@@ -167,11 +191,16 @@ export function AddFoodModal({
       mealType: meal,
       amount: parsedAmount,
       unit: unitKey,
+      date: entryDate,
     });
     const kcal = nutritionForServing(food, parsedAmount, unitKey).calories;
     const amountLabel = formatAmountInUnit(food, parsedAmount, unitKey);
+    const dateSuffix =
+      entryDate && entryDate !== todayKey()
+        ? ` · ${formatDayMonth(dateFromKey(entryDate))}`
+        : "";
     showToast(
-      `Добавлено в ${mealName(meal).toLowerCase()}`,
+      `Добавлено в ${mealName(meal).toLowerCase()}${dateSuffix}`,
       hasNutrition(food)
         ? `${food.name} · ${amountLabel} · ${formatNumber(Math.round(kcal))} ккал`
         : `${food.name} · ${amountLabel}`,
@@ -210,6 +239,23 @@ export function AddFoodModal({
           ) : undefined
         }
       >
+        {/* Stage 14A: persistent date context — the user must always see
+            which day the entry will be written to (hidden for today). */}
+        {historicalContext && (
+          <div
+            role="note"
+            aria-label={`Дата записи: ${historicalContext}`}
+            className="mb-4 flex items-center gap-2.5 rounded-2xl bg-primary/10 px-3.5 py-2.5 text-primary"
+          >
+            <CalendarDays className="h-[18px] w-[18px] shrink-0" />
+            <p className="min-w-0 text-[13px] font-semibold leading-snug">
+              Добавить в дневник
+              <span className="mt-px block font-medium text-primary/80">
+                {historicalContext}
+              </span>
+            </p>
+          </div>
+        )}
         <div key={step} className="animate-step-in">
           {step === "search" && (
             <>
