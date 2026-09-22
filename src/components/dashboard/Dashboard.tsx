@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useAppLaunch } from "@/components/app/AppLaunch";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
@@ -18,6 +18,9 @@ import {
   resolveEntries,
 } from "@/lib/nutrition";
 import type { MealType } from "@/lib/types";
+import { Toast } from "@/components/ui/Toast";
+import type { MealToastNotify } from "@/components/nutrition/MealFoodList";
+import type { FoodEntry } from "@/lib/types";
 import { MealCard } from "./MealCard";
 import { TodaySummary } from "./TodaySummary";
 
@@ -38,11 +41,48 @@ function rise(launched: boolean, delayMs: number, extraClass = "") {
  * button closes the page. All values come from the real diary entries.
  */
 export function Dashboard() {
-  const { ready, entries, targets, profile, findFood } = useDiary();
+  const { ready, entries, targets, profile, findFood, restoreEntry } = useDiary();
   const { launched } = useAppLaunch();
   const [addOpen, setAddOpen] = useState(false);
   const [addMeal, setAddMeal] = useState<MealType | null>(null);
   const date = useMemo(() => new Date(), []);
+
+  // Stage 14B: the meal-level toast lives HERE, not inside MealFoodList
+  // — meal lists unmount when their meal is emptied or collapsed,
+  // which used to kill the delete toast (and its undo slot) mid-flight.
+  const [toast, setToast] = useState<{
+    message: string;
+    detail: string;
+    /** The deleted entry offered for undo — one slot, latest wins. */
+    undoEntry: FoodEntry | null;
+  } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const notifyToast = useCallback<MealToastNotify>(
+    (message, detail, options) => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      setToast({ message, detail, undoEntry: options?.undoEntry ?? null });
+      toastTimer.current = setTimeout(
+        () => setToast(null),
+        options?.duration ?? 2500,
+      );
+    },
+    [],
+  );
+
+  /** Undo: put the exact original entry back and dismiss the toast. */
+  function handleUndo(entry: FoodEntry) {
+    restoreEntry(entry);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(null);
+  }
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   if (!ready) return <LoadingState />;
 
@@ -57,6 +97,9 @@ export function Dashboard() {
     setAddMeal(meal);
     setAddOpen(true);
   }
+
+  // Captured into a const so the toast closure keeps the narrowing.
+  const undoEntry = toast?.undoEntry ?? null;
 
   return (
     <div className="space-y-7 sm:space-y-8">
@@ -110,6 +153,7 @@ export function Dashboard() {
                 findFood,
               )}
               onAdd={() => openAdd(meal.id)}
+              onToast={notifyToast}
             />
           ))}
         </div>
@@ -133,6 +177,16 @@ export function Dashboard() {
         onClose={() => setAddOpen(false)}
         onReopen={() => setAddOpen(true)}
         preselectedMeal={addMeal}
+      />
+
+      <Toast
+        message={toast?.message ?? null}
+        detail={toast?.detail ?? null}
+        action={
+          undoEntry
+            ? { label: "Отменить", onClick: () => handleUndo(undoEntry) }
+            : null
+        }
       />
     </div>
   );

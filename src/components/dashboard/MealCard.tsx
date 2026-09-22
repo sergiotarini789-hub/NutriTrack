@@ -9,6 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import type { MealType } from "@/lib/types";
 import type { ResolvedEntry } from "@/lib/nutrition";
 import { MealFoodList } from "@/components/nutrition/MealFoodList";
+import type { MealToastNotify } from "@/components/nutrition/MealFoodList";
 
 interface MealCardProps {
   mealId: MealType;
@@ -16,6 +17,8 @@ interface MealCardProps {
   icon: LucideIcon;
   items: ResolvedEntry[];
   onAdd: () => void;
+  /** Stage 14B: forwarded to the meal list (toast owned by Dashboard). */
+  onToast: MealToastNotify;
 }
 
 /**
@@ -25,7 +28,7 @@ interface MealCardProps {
  * collapses/expands with a chevron. Empty meals get a short honest
  * line and the same quiet add row.
  */
-export function MealCard({ name, icon: Icon, items, onAdd }: MealCardProps) {
+export function MealCard({ name, icon: Icon, items, onAdd, onToast }: MealCardProps) {
   const [open, setOpen] = useState(items.length > 0);
   const totals = nutritionOfEntries(items);
   const empty = items.length === 0;
@@ -87,7 +90,7 @@ export function MealCard({ name, icon: Icon, items, onAdd }: MealCardProps) {
       ) : (
         open && (
           <div className="px-2 pb-2 pt-0.5 sm:px-3">
-            <MealFoodList items={items} />
+            <MealFoodList items={items} onToast={onToast} />
           </div>
         )
       )}

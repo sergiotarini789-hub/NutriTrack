@@ -18,6 +18,7 @@ import {
   resolveEffectiveTargets,
 } from "./goals";
 import { todayKey } from "./dates";
+import { withRestoredEntry } from "./entry-restore";
 import { LocalFoodRepository } from "./food-repository";
 import {
   STORAGE_KEYS,
@@ -115,6 +116,13 @@ interface DiaryContextValue {
   addEntry: (input: AddEntryInput) => void;
   updateEntry: (id: string, changes: UpdateEntryInput) => void;
   removeEntry: (id: string) => void;
+  /**
+   * Stage 14B (undo): re-inserts a previously deleted entry EXACTLY
+   * as it was — same id, createdAt, date, meal, amount, unit and
+   * foodType. No new id, no re-stamping (unlike addEntry). Idempotent:
+   * a no-op when an entry with the same id is already present.
+   */
+  restoreEntry: (entry: FoodEntry) => void;
   /**
    * Explicitly sets manual targets — switches the mode to "manual".
    * Profile changes never overwrite them afterwards.
@@ -289,6 +297,17 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const restoreEntry = useCallback((entry: FoodEntry) => {
+    setEntries((previous) => {
+      const next = withRestoredEntry(previous, entry);
+      // No-op restore: keep the previous array reference so React
+      // skips the re-render and nothing is re-written to storage.
+      if (next === previous) return previous;
+      saveEntries(next);
+      return next;
+    });
+  }, []);
+
   // Derived state: the effective targets always come from the profile
   // (auto; null while the profile is incomplete) or the stored manual
   // values — Settings and the dashboard consume this single result,
@@ -366,6 +385,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       addEntry,
       updateEntry,
       removeEntry,
+      restoreEntry,
       setTargets,
       setTargetMode,
       setProfile,
@@ -390,6 +410,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       addEntry,
       updateEntry,
       removeEntry,
+      restoreEntry,
       setTargets,
       setTargetMode,
       setProfile,

@@ -17,11 +17,24 @@ import {
   type ResolvedEntry,
 } from "@/lib/nutrition";
 import { prefersReducedMotion } from "@/lib/motion";
+import type { FoodEntry } from "@/lib/types";
 import { EditEntryModal } from "./EditEntryModal";
-import { Toast } from "@/components/ui/Toast";
+
+/**
+ * Stage 14B: toasts (delete-with-undo, repeat) are OWNED by the
+ * Dashboard — meal lists unmount when their meal becomes empty or is
+ * collapsed, which would kill an in-flight toast and its undo slot.
+ */
+export type MealToastNotify = (
+  message: string,
+  detail: string,
+  options?: { undoEntry?: FoodEntry | null; duration?: number },
+) => void;
 
 interface MealFoodListProps {
   items: ResolvedEntry[];
+  /** Shows the app-level toast (Dashboard-owned since Stage 14B). */
+  onToast: MealToastNotify;
 }
 
 /**
@@ -29,18 +42,13 @@ interface MealFoodListProps {
  * calories on the right, quantity as quiet metadata that opens a
  * quick inline editor. Row actions (edit / repeat / delete) hide
  * behind a single "…" button instead of permanent icon clutter.
+ * Stage 14B: deleting shows an "Отменить" (undo) toast action that
+ * re-inserts the exact original entry, and the action disclosure
+ * closes on Escape / outside press like a proper menu.
  */
-export function MealFoodList({ items }: MealFoodListProps) {
+export function MealFoodList({ items, onToast }: MealFoodListProps) {
   const { removeEntry, addEntry } = useDiary();
   const [editItem, setEditItem] = useState<ResolvedEntry | null>(null);
-  const [toast, setToast] = useState<{ message: string; detail: string } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function notify(message: string, detail: string) {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ message, detail });
-    toastTimer.current = setTimeout(() => setToast(null), 2500);
-  }
 
   function handleDeleted(item: ResolvedEntry) {
     removeEntry(item.entry.id);
@@ -49,11 +57,15 @@ export function MealFoodList({ items }: MealFoodListProps) {
       item.entry.amount,
       item.entry.unit,
     ).calories;
-    notify(
+    // Stage 14B: a longer, actionable toast so the user has time to
+    // press «Отменить». Non-action toasts stay at 2500 ms. Rendered by
+    // the Dashboard, which never unmounts when a meal becomes empty.
+    onToast(
       "Удалено",
       hasNutrition(item.food)
         ? `${item.food.name} · −${formatNumber(Math.round(kcal))} ккал`
         : item.food.name,
+      { undoEntry: item.entry, duration: 5000 },
     );
   }
 
@@ -65,15 +77,8 @@ export function MealFoodList({ items }: MealFoodListProps) {
       amount: item.entry.amount,
       unit: item.entry.unit,
     });
-    notify("Добавлено", item.food.name);
+    onToast("Добавлено", item.food.name);
   }
-
-  useEffect(
-    () => () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    },
-    [],
-  );
 
   return (
     <>
@@ -89,7 +94,6 @@ export function MealFoodList({ items }: MealFoodListProps) {
         ))}
       </ul>
       <EditEntryModal item={editItem} onClose={() => setEditItem(null)} />
-      <Toast message={toast?.message ?? null} detail={toast?.detail ?? null} />
     </>
   );
 }
@@ -106,8 +110,35 @@ function MealFoodRow({ item, onEdit, onDeleted, onRepeated }: MealFoodRowProps) 
   const [inlineOpen, setInlineOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const rowRef = useRef<HTMLLIElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { entry, food } = item;
   const nutrition = nutritionForServing(food, entry.amount, entry.unit);
+
+  // Stage 14B: while the action disclosure is open it behaves like a
+  // menu — Escape closes it and returns focus to the "⋯" trigger, a
+  // pointer press outside the row closes it. Listening only while open
+  // also guarantees at most one disclosure can stay open at a time.
+  useEffect(() => {
+    if (!actionsOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setActionsOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    function onPointerDown(event: PointerEvent) {
+      if (rowRef.current && !rowRef.current.contains(event.target as Node)) {
+        setActionsOpen(false);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [actionsOpen]);
 
   function handleDelete() {
     if (removing) return;
@@ -122,6 +153,7 @@ function MealFoodRow({ item, onEdit, onDeleted, onRepeated }: MealFoodRowProps) 
 
   return (
     <li
+      ref={rowRef}
       className={cn(
         "animate-row-in rounded-2xl transition-colors hover:bg-foreground/[0.03]",
         removing && "animate-row-out pointer-events-none",
@@ -164,6 +196,7 @@ function MealFoodRow({ item, onEdit, onDeleted, onRepeated }: MealFoodRowProps) 
 
         {/* Single quiet "…" reveals the contextual actions */}
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setActionsOpen((open) => !open)}
           aria-expanded={actionsOpen}
@@ -182,7 +215,7 @@ function MealFoodRow({ item, onEdit, onDeleted, onRepeated }: MealFoodRowProps) 
 
       {actionsOpen && (
         <div
-          className="animate-step-in flex items-center gap-1 px-2 pb-2 motion-reduce:animate-none"
+          className="animate-step-in flex flex-wrap items-center gap-1 px-2 pb-2 motion-reduce:animate-none"
           role="group"
           aria-label={`Действия с «${food.name}»`}
         >
@@ -190,7 +223,10 @@ function MealFoodRow({ item, onEdit, onDeleted, onRepeated }: MealFoodRowProps) 
             icon={<Pencil className="h-4 w-4" />}
             label="Изменить"
             ariaLabel={`Изменить: ${food.name}`}
-            onClick={() => onEdit(item)}
+            onClick={() => {
+              setActionsOpen(false);
+              onEdit(item);
+            }}
           />
           <RowAction
             icon={<Repeat className="h-4 w-4" />}

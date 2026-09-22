@@ -53,19 +53,6 @@ export function defaultMealForNow(): MealType {
   return "snacks";
 }
 
-/**
- * Foods offered under "Часто используемые" until the diary has enough
- * real history of its own.
- */
-export const FREQUENT_FOOD_IDS = [
-  "egg",
-  "banana",
-  "chicken-breast",
-  "milk-2.5",
-  "white-bread",
-  "buckwheat",
-] as const;
-
 export const GENDER_LABELS: Record<Gender, string> = {
   male: "Мужской",
   female: "Женский",
