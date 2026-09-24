@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Calculator, ChevronDown, PencilLine } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
@@ -13,7 +14,11 @@ import { useDiary } from "@/lib/diary";
 import { formatNumber } from "@/lib/format";
 import { profileFieldError } from "@/lib/goals";
 import { parseAmountInput } from "@/lib/nutrition";
-import { loadUnits, saveUnits, type Units } from "@/lib/storage";
+import {
+  backupFileName,
+  buildBackup,
+  importBackupText,
+} from "@/lib/backup";
 import type { ActivityLevel, Gender, Goal } from "@/lib/types";
 import { SettingRow } from "./SettingRow";
 import { SettingsSection } from "./SettingsSection";
@@ -161,16 +166,49 @@ export function SettingsForm() {
     setTargets,
     setTargetMode,
   } = useDiary();
-  const [units, setUnits] = useState<Units>("metric");
   const [ageError, setAgeError] = useState<string | null>(null);
   const [heightError, setHeightError] = useState<string | null>(null);
   const [weightError, setWeightError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setUnits(loadUnits());
-  }, []);
+  // Stage 15A: local backup (export/import). importError shows a clear
+  // Russian message; a successful import reloads the app so every
+  // screen reflects the restored data.
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importDone, setImportDone] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   if (!ready) return <LoadingState />;
+
+  function handleExport() {
+    const text = JSON.stringify(buildBackup(), null, 2);
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = backupFileName();
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportFile(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    // Allow picking the same file again (e.g. a re-import).
+    event.target.value = "";
+    if (!file) return;
+    setImportError(null);
+    try {
+      const result = importBackupText(await file.text());
+      if (!result.ok) {
+        setImportError(result.error);
+        return;
+      }
+      setImportDone(true);
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch {
+      setImportError("Не удалось прочитать файл.");
+    }
+  }
 
   const genderOptions: Option<Gender>[] = [
     { value: "male", label: GENDER_LABELS.male },
@@ -394,24 +432,47 @@ export function SettingsForm() {
             <ThemeSelector />
           </div>
 
-          <SettingRow label="Единицы измерения">
-            <div className="relative">
-              <select
-                value={units}
-                aria-label="Единицы измерения"
-                onChange={(event) => {
-                  const next = event.target.value as Units;
-                  setUnits(next);
-                  saveUnits(next);
-                }}
-                className={SELECT_CLASSES}
+        </SettingsSection>
+
+        {/* Stage 15A: quiet backup section — protects the local-first
+            data against browser storage loss. */}
+        <SettingsSection title="Данные">
+          <div className="px-5 py-4 sm:px-6">
+            <p className="text-[13px] text-muted-foreground">
+              Сохраните резервную копию дневника, продуктов и настроек.
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button variant="secondary" onClick={handleExport}>
+                Экспортировать данные
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => importInputRef.current?.click()}
               >
-                <option value="metric">Метрическая</option>
-                <option value="imperial">Имперская</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                Импортировать данные
+              </Button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
             </div>
-          </SettingRow>
+            {importError && (
+              <p
+                role="alert"
+                className="mt-2 text-[13px] font-medium text-red-600 dark:text-red-400"
+              >
+                {importError}
+              </p>
+            )}
+            {importDone && (
+              <p className="mt-2 text-[13px] text-muted-foreground">
+                Данные восстановлены — обновляем страницу…
+              </p>
+            )}
+          </div>
         </SettingsSection>
 
         <p className="mt-6 px-1 text-xs leading-relaxed text-muted-foreground">

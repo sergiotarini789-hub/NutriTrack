@@ -30,7 +30,6 @@ export const STORAGE_KEYS = {
   entries: `${PREFIX}:entries`,
   profile: `${PREFIX}:profile`,
   targets: `${PREFIX}:targets`,
-  units: `${PREFIX}:units`,
   onboarded: `${PREFIX}:onboarded`,
   userFoods: `${PREFIX}:user-foods`,
   /**
@@ -46,8 +45,6 @@ export const STORAGE_KEYS = {
    */
   targetMode: `${PREFIX}:target-mode`,
 } as const;
-
-export type Units = "metric" | "imperial";
 
 const MEAL_TYPES: readonly MealType[] = [
   "breakfast",
@@ -151,8 +148,12 @@ function isValidEntry(value: unknown): value is FoodEntry {
  * Optional `foodType`/`createdAt` fields (Stage 6) are kept when valid
  * and dropped otherwise; the migration is idempotent.
  */
-export function loadEntries(): FoodEntry[] {
-  const raw = readJson<unknown>(STORAGE_KEYS.entries);
+/**
+ * Pure entries parser (Stage 15A backup import reuses it as the single
+ * source of truth): validates and migrates a raw parsed value exactly
+ * like the stored data. Invalid items are dropped.
+ */
+export function parseStoredEntries(raw: unknown): FoodEntry[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter(isValidEntry).map((entry) => ({
     ...entry,
@@ -167,6 +168,10 @@ export function loadEntries(): FoodEntry[] {
         ? entry.createdAt
         : undefined,
   }));
+}
+
+export function loadEntries(): FoodEntry[] {
+  return parseStoredEntries(readJson<unknown>(STORAGE_KEYS.entries));
 }
 
 export function saveEntries(entries: FoodEntry[]): void {
@@ -291,12 +296,16 @@ function parseUserProduct(value: unknown): UserProduct | null {
   };
 }
 
-export function loadUserFoods(): UserProduct[] {
-  const raw = readJson<unknown>(STORAGE_KEYS.userFoods);
+/** Pure user-products parser (Stage 15A backup import reuses it). */
+export function parseStoredUserFoods(raw: unknown): UserProduct[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map(parseUserProduct)
     .filter((item): item is UserProduct => item !== null);
+}
+
+export function loadUserFoods(): UserProduct[] {
+  return parseStoredUserFoods(readJson<unknown>(STORAGE_KEYS.userFoods));
 }
 
 export function saveUserFoods(items: UserProduct[]): void {
@@ -445,12 +454,16 @@ function parseOffProduct(value: unknown): BrandedProduct | null {
   };
 }
 
-export function loadOffProducts(): BrandedProduct[] {
-  const raw = readJson<unknown>(STORAGE_KEYS.offProducts);
+/** Pure OFF-cache parser (Stage 15A backup import reuses it). */
+export function parseStoredOffProducts(raw: unknown): BrandedProduct[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map(parseOffProduct)
     .filter((item): item is BrandedProduct => item !== null);
+}
+
+export function loadOffProducts(): BrandedProduct[] {
+  return parseStoredOffProducts(readJson<unknown>(STORAGE_KEYS.offProducts));
 }
 
 export function saveOffProducts(items: BrandedProduct[]): void {
@@ -490,8 +503,8 @@ function boundedNumber(
   return profileFieldError(field, parsed) === null ? parsed : null;
 }
 
-export function loadProfile(): UserProfile {
-  const raw = readJson<unknown>(STORAGE_KEYS.profile);
+/** Pure profile parser (Stage 15A backup import reuses it). */
+export function parseStoredProfile(raw: unknown): UserProfile {
   if (!isRecord(raw)) return EMPTY_PROFILE;
   return {
     name:
@@ -507,6 +520,10 @@ export function loadProfile(): UserProfile {
   };
 }
 
+export function loadProfile(): UserProfile {
+  return parseStoredProfile(readJson<unknown>(STORAGE_KEYS.profile));
+}
+
 export function saveProfile(profile: UserProfile): void {
   writeJson(STORAGE_KEYS.profile, profile);
 }
@@ -517,8 +534,8 @@ function targetField(value: unknown, fallback: number): number {
   return positiveNumber(value) ?? fallback;
 }
 
-export function loadTargets(): NutritionTargets {
-  const raw = readJson<unknown>(STORAGE_KEYS.targets);
+/** Pure manual-targets parser (Stage 15A backup import reuses it). */
+export function parseStoredTargets(raw: unknown): NutritionTargets {
   if (!isRecord(raw)) return DEFAULT_TARGETS;
   return {
     calories: targetField(raw.calories, DEFAULT_TARGETS.calories),
@@ -526,6 +543,10 @@ export function loadTargets(): NutritionTargets {
     fat: targetField(raw.fat, DEFAULT_TARGETS.fat),
     carbs: targetField(raw.carbs, DEFAULT_TARGETS.carbs),
   };
+}
+
+export function loadTargets(): NutritionTargets {
+  return parseStoredTargets(readJson<unknown>(STORAGE_KEYS.targets));
 }
 
 export function saveTargets(targets: NutritionTargets): void {
@@ -566,16 +587,6 @@ export function saveTargetMode(mode: TargetMode): void {
 }
 
 /* -------------------------- App preferences -------------------------- */
-
-export function loadUnits(): Units {
-  return readJson<unknown>(STORAGE_KEYS.units) === "imperial"
-    ? "imperial"
-    : "metric";
-}
-
-export function saveUnits(units: Units): void {
-  writeJson(STORAGE_KEYS.units, units);
-}
 
 export function loadOnboarded(): boolean {
   if (typeof window === "undefined") return false;

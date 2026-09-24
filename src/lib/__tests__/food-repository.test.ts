@@ -195,7 +195,6 @@ describe("storage keys stay stable", () => {
     expect(STORAGE_KEYS.entries).toBe("nutritrack:v1:entries");
     expect(STORAGE_KEYS.profile).toBe("nutritrack:v1:profile");
     expect(STORAGE_KEYS.targets).toBe("nutritrack:v1:targets");
-    expect(STORAGE_KEYS.units).toBe("nutritrack:v1:units");
     expect(STORAGE_KEYS.onboarded).toBe("nutritrack:v1:onboarded");
     expect(STORAGE_KEYS.userFoods).toBe("nutritrack:v1:user-foods");
   });
